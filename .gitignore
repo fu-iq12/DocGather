@@ -1,0 +1,38 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# tests
+_tests_/
+
+# docs
+docs/**/html/
+
+# dist
+dist/
+
+# local env files
+.env*.local
+
+# deno lock used for tests
+deno.lock
+
+# workers env (env set in fly.io)
+workers/.env
+
+# workers node_modules and dist
+workers/node_modules/
+workers/cache/
+workers/dist/
+
+# test documents
+_experiments_/
+documents location conv/
+Extract documents location/
+*.pdf
+*.docx
+*.webp
+*.jpg
+*.png
+/supabase/seed.sql

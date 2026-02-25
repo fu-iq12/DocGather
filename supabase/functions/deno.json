@@ -1,0 +1,13 @@
+{
+  "imports": {
+    "@panva/jose": "jsr:@panva/jose@6"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window"]
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  }
+}

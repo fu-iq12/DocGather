@@ -1,0 +1,30 @@
+/**
+ * Mistral Provider
+ *
+ * Extends GenericProvider with global Mistral rate limiting.
+ * All chat/vision calls are routed through the shared MistralRateLimiter
+ * to respect Mistral's global API rate limit.
+ */
+
+import type {
+  ChatMessage,
+  ChatRequestOptions,
+  ChatResponse,
+} from "../types.js";
+import { GenericProvider } from "./generic.js";
+import { MistralRateLimiter } from "./mistral-rate-limiter.js";
+
+export class MistralProvider extends GenericProvider {
+  name = "mistral";
+
+  protected async _chat(
+    messages: ChatMessage[],
+    options?: ChatRequestOptions,
+  ): Promise<ChatResponse> {
+    const body = JSON.stringify(this._getRequestBody(messages, options));
+    return MistralRateLimiter.getInstance().execute(
+      () => this._doChat(messages, options),
+      body.length,
+    );
+  }
+}

@@ -1,0 +1,51 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./cache:/app/cache # LLM response cache (optional)
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SB_SECRET_KEY=${SB_SECRET_KEY}
+      # LLM Configuration
+      - LLM_OCR_PROVIDER=${LLM_OCR_PROVIDER:-ovhcloud}
+      - LLM_OCR_MODEL=${LLM_OCR_MODEL:-}
+      - LLM_OCR_ENDPOINT=${LLM_OCR_ENDPOINT:-}
+      - LLM_VISION_PROVIDER=${LLM_VISION_PROVIDER:-ovhcloud}
+      - LLM_VISION_MODEL=${LLM_VISION_MODEL:-}
+      - LLM_VISION_ENDPOINT=${LLM_VISION_ENDPOINT:-}
+      - LLM_TEXT_PROVIDER=${LLM_TEXT_PROVIDER:-ovhcloud}
+      - LLM_TEXT_MODEL=${LLM_TEXT_MODEL:-}
+      - LLM_TEXT_ENDPOINT=${LLM_TEXT_ENDPOINT:-}
+      - LLM_NUM_CTX=${LLM_NUM_CTX:-}
+      - OVH_AI_API_KEY=${OVH_AI_API_KEY:-}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      - MISTRAL_MAX_RPS=${MISTRAL_MAX_RPS:-1}
+      - LLM_CACHE_ENABLED=${LLM_CACHE_ENABLED:-false}
+      - LLM_CACHE_DIR=/app/cache
+      - FILE_CACHE_KEEP_ON_DISK=${FILE_CACHE_KEEP_ON_DISK:-true}
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: npm run dev
+    ports:
+      - "8080:8080"
+
+volumes:
+  redis_data:

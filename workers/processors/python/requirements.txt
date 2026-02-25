@@ -1,0 +1,13 @@
+# Python dependencies for PDF and Document processing
+pdfplumber>=0.10.0
+langdetect>=1.0.9
+pandas
+openpyxl
+pyxlsb
+tabulate
+pillow
+pillow-heif
+pdf2image
+python-docx
+extract-msg
+beautifulsoup4

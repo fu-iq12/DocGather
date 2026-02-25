@@ -1,0 +1,38 @@
+{
+  "name": "docgather-workers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "bullstudio": "npx bullstudio -r redis://localhost:6380",
+    "bullstudio:upstash": "npx dotenv-cli -- npx bullstudio -r %REDIS_URL%",
+    "upload-test": "npx tsx ../scripts/test-upload.ts test-user@example.com ../test.png",
+    "docker:rebuild": "docker-compose build worker"
+  },
+  "dependencies": {
+    "@prettier/sync": "^0.6.1",
+    "@supabase/supabase-js": "^2.49.0",
+    "bullmq": "^5.34.0",
+    "express": "^4.21.0",
+    "ioredis": "^5.4.0",
+    "pdf-lib": "^1.17.1",
+    "prettier": "^3.8.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

@@ -1,0 +1,1413 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DocGather — Document Engine Overview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ─── Reset & Base ─────────────────────────────── */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #0c0e14;
+        --bg-card: #13161f;
+        --bg-raised: #1a1e2b;
+        --border: #252a38;
+        --text: #c8cdd8;
+        --text-dim: #6b7280;
+        --heading: #eef0f6;
+        --accent: #5b8aff;
+        --accent-g: #34d399;
+        --accent-y: #fbbf24;
+        --accent-r: #f87171;
+        --accent-p: #a78bfa;
+        --accent-o: #fb923c;
+        --accent-pink: #f472b6;
+        --mono: "Space Mono", monospace;
+        --sans: "DM Sans", system-ui, sans-serif;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family: var(--sans);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.7;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ─── Grain Overlay ───────────────────────────── */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: 9999;
+      }
+
+      /* ─── Layout ───────────────────────────────────── */
+      .container {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 2rem;
+      }
+
+      section {
+        padding: 5rem 0;
+      }
+
+      /* ─── Hero ─────────────────────────────────────── */
+      .hero {
+        min-height: 90vh;
+        display: flex;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: "";
+        position: absolute;
+        width: 600px;
+        height: 600px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(91, 138, 255, 0.12) 0%,
+          transparent 70%
+        );
+        top: -200px;
+        right: -200px;
+        pointer-events: none;
+      }
+      .hero::after {
+        content: "";
+        position: absolute;
+        width: 400px;
+        height: 400px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(52, 211, 153, 0.08) 0%,
+          transparent 70%
+        );
+        bottom: -100px;
+        left: -100px;
+        pointer-events: none;
+      }
+      .hero-inner {
+        position: relative;
+        z-index: 1;
+      }
+      .hero .badge {
+        display: inline-block;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        color: var(--accent);
+        border: 1px solid var(--accent);
+        border-radius: 100px;
+        padding: 0.35rem 1rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 1.5rem;
+        animation: fadeUp 0.8s ease both;
+      }
+      .hero h1 {
+        font-size: clamp(2.8rem, 6vw, 4.5rem);
+        font-weight: 700;
+        color: var(--heading);
+        line-height: 1.1;
+        margin-bottom: 1.5rem;
+        animation: fadeUp 0.8s 0.1s ease both;
+      }
+      .hero h1 span {
+        color: var(--accent);
+      }
+      .hero p.lead {
+        font-size: 1.2rem;
+        max-width: 600px;
+        color: var(--text);
+        animation: fadeUp 0.8s 0.2s ease both;
+      }
+
+      /* ─── Section Headers ──────────────────────────── */
+      .section-label {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 0.75rem;
+      }
+      h2 {
+        font-size: clamp(1.8rem, 4vw, 2.6rem);
+        font-weight: 700;
+        color: var(--heading);
+        margin-bottom: 1rem;
+      }
+      h3 {
+        font-size: 1.15rem;
+        font-weight: 600;
+        color: var(--heading);
+        margin-bottom: 0.5rem;
+      }
+      .section-intro {
+        max-width: 640px;
+        color: var(--text-dim);
+        margin-bottom: 3rem;
+        font-size: 1.05rem;
+      }
+
+      /* ─── Problem / Solution Cards ─────────────────── */
+      .duo-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+      }
+      @media (max-width: 700px) {
+        .duo-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 2rem;
+        transition:
+          border-color 0.3s,
+          transform 0.3s;
+      }
+      .card:hover {
+        border-color: var(--accent);
+        transform: translateY(-2px);
+      }
+      .card .icon {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+      }
+      .card p {
+        color: var(--text-dim);
+        font-size: 0.95rem;
+      }
+
+      /* ─── Document Categories Grid ─────────────────── */
+      .cat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 1rem;
+        margin-top: 2rem;
+      }
+      .cat-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        position: relative;
+        overflow: hidden;
+      }
+      .cat-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+      }
+      .cat-card.identity::before {
+        background: var(--accent);
+      }
+      .cat-card.residence::before {
+        background: var(--accent-g);
+      }
+      .cat-card.work::before {
+        background: var(--accent-y);
+      }
+      .cat-card.income::before {
+        background: var(--accent-p);
+      }
+      .cat-card .cat-icon {
+        font-size: 1.8rem;
+        margin-bottom: 0.75rem;
+      }
+      .cat-card h3 {
+        font-size: 1rem;
+      }
+      .cat-card ul {
+        list-style: none;
+        margin-top: 0.5rem;
+      }
+      .cat-card ul li {
+        font-size: 0.85rem;
+        color: var(--text-dim);
+        padding: 0.2rem 0;
+      }
+      .cat-card ul li::before {
+        content: "·";
+        margin-right: 0.5rem;
+        color: var(--text-dim);
+      }
+
+      /* ─── Pipeline ─────────────────────────────────── */
+      .pipeline-section {
+        padding-bottom: 6rem;
+      }
+
+      .pipeline {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        position: relative;
+        margin-top: 2.5rem;
+      }
+
+      .pipeline::before {
+        content: "";
+        position: absolute;
+        left: 30px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: linear-gradient(
+          to bottom,
+          var(--accent),
+          var(--accent-g),
+          var(--accent-y),
+          var(--accent-p),
+          var(--accent-o),
+          var(--accent-pink),
+          var(--accent-r),
+          var(--accent)
+        );
+        opacity: 0.35;
+      }
+
+      .step {
+        display: flex;
+        align-items: flex-start;
+        gap: 1.5rem;
+        padding: 1.25rem 0;
+        position: relative;
+        opacity: 0;
+        transform: translateX(-20px);
+        animation: stepIn 0.6s ease forwards;
+      }
+      .step:nth-child(1) {
+        animation-delay: 0s;
+      }
+      .step:nth-child(2) {
+        animation-delay: 0.08s;
+      }
+      .step:nth-child(3) {
+        animation-delay: 0.16s;
+      }
+      .step:nth-child(4) {
+        animation-delay: 0.24s;
+      }
+      .step:nth-child(5) {
+        animation-delay: 0.32s;
+      }
+      .step:nth-child(6) {
+        animation-delay: 0.4s;
+      }
+      .step:nth-child(7) {
+        animation-delay: 0.48s;
+      }
+      .step:nth-child(8) {
+        animation-delay: 0.56s;
+      }
+      .step:nth-child(9) {
+        animation-delay: 0.64s;
+      }
+
+      .step-dot {
+        flex-shrink: 0;
+        width: 60px;
+        height: 60px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        position: relative;
+        z-index: 1;
+        border: 2px solid transparent;
+      }
+      .step-dot.upload {
+        background: rgba(91, 138, 255, 0.12);
+        border-color: rgba(91, 138, 255, 0.3);
+      }
+      .step-dot.convert {
+        background: rgba(52, 211, 153, 0.12);
+        border-color: rgba(52, 211, 153, 0.3);
+      }
+      .step-dot.analyze {
+        background: rgba(251, 191, 36, 0.12);
+        border-color: rgba(251, 191, 36, 0.3);
+      }
+      .step-dot.split {
+        background: rgba(167, 139, 250, 0.12);
+        border-color: rgba(167, 139, 250, 0.3);
+      }
+      .step-dot.image {
+        background: rgba(249, 115, 22, 0.12);
+        border-color: rgba(249, 115, 22, 0.3);
+      }
+      .step-dot.extract {
+        background: rgba(244, 114, 182, 0.12);
+        border-color: rgba(244, 114, 182, 0.3);
+      }
+      .step-dot.classify {
+        background: rgba(248, 113, 113, 0.12);
+        border-color: rgba(248, 113, 113, 0.3);
+      }
+      .step-dot.normalize {
+        background: rgba(91, 138, 255, 0.12);
+        border-color: rgba(91, 138, 255, 0.3);
+      }
+
+      .step-content {
+        flex: 1;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.5rem 1.75rem;
+        transition:
+          border-color 0.3s,
+          box-shadow 0.3s;
+      }
+      .step-content:hover {
+        border-color: var(--accent);
+        box-shadow: 0 0 30px rgba(91, 138, 255, 0.06);
+      }
+      .step-content .step-title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: var(--heading);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .step-content .step-title .opt {
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        color: var(--accent-y);
+        border: 1px solid rgba(251, 191, 36, 0.3);
+        padding: 0.15rem 0.5rem;
+        border-radius: 100px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .step-content .step-desc {
+        margin-top: 0.5rem;
+        font-size: 0.92rem;
+        color: var(--text-dim);
+        line-height: 1.65;
+      }
+      .step-content .step-detail {
+        margin-top: 0.75rem;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        color: var(--text-dim);
+        background: var(--bg-raised);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        line-height: 1.6;
+      }
+      .step-content .loop-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        color: var(--accent-p);
+        border: 1px solid rgba(167, 139, 250, 0.25);
+        background: rgba(167, 139, 250, 0.06);
+        padding: 0.2rem 0.6rem;
+        border-radius: 100px;
+        margin-top: 0.5rem;
+      }
+
+      /* ─── Data Cards Section ───────────────────────── */
+      .datacards-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-top: 2rem;
+      }
+      @media (max-width: 700px) {
+        .datacards-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .datacard {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.75rem;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        line-height: 1.7;
+      }
+      .datacard .dc-header {
+        font-family: var(--sans);
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--heading);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .datacard .dc-header .dc-type {
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        color: var(--accent-g);
+        background: rgba(52, 211, 153, 0.08);
+        border: 1px solid rgba(52, 211, 153, 0.2);
+        padding: 0.15rem 0.5rem;
+        border-radius: 100px;
+      }
+      .dc-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.3rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      }
+      .dc-key {
+        color: var(--text-dim);
+      }
+      .dc-val {
+        color: var(--heading);
+        text-align: right;
+      }
+
+      /* ─── Architecture Cards ───────────────────────── */
+      .arch-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+        margin-top: 2rem;
+      }
+      @media (max-width: 900px) {
+        .arch-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 600px) {
+        .arch-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .arch-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.75rem;
+        text-align: center;
+        transition:
+          border-color 0.3s,
+          transform 0.3s;
+      }
+      .arch-card:hover {
+        border-color: var(--accent);
+        transform: translateY(-3px);
+      }
+      .arch-card .arch-icon {
+        font-size: 2.2rem;
+        margin-bottom: 0.75rem;
+      }
+      .arch-card h3 {
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+      }
+      .arch-card p {
+        font-size: 0.82rem;
+        color: var(--text-dim);
+      }
+
+      /* ─── Flow Diagram ─────────────────────────────── */
+      .flow-diagram {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 2.5rem;
+        margin-top: 2.5rem;
+        overflow-x: auto;
+      }
+      .flow-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin: 1rem 0;
+      }
+      .flow-node {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: var(--bg-raised);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.5rem 1rem;
+        font-size: 0.82rem;
+        color: var(--heading);
+        white-space: nowrap;
+      }
+      .flow-node.source {
+        border-color: rgba(91, 138, 255, 0.3);
+      }
+      .flow-node.process {
+        border-color: rgba(52, 211, 153, 0.3);
+      }
+      .flow-node.output {
+        border-color: rgba(167, 139, 250, 0.3);
+      }
+      .flow-arrow {
+        color: var(--text-dim);
+        font-size: 1.1rem;
+      }
+      .flow-label {
+        text-align: center;
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        color: var(--text-dim);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 0.5rem;
+      }
+
+      /* ─── Features Grid ────────────────────────────── */
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.25rem;
+        margin-top: 2rem;
+      }
+      .feature-item {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+        padding: 1.25rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        transition: border-color 0.3s;
+      }
+      .feature-item:hover {
+        border-color: var(--accent);
+      }
+      .feature-item .f-icon {
+        font-size: 1.5rem;
+        flex-shrink: 0;
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-raised);
+        border-radius: 10px;
+      }
+      .feature-item h3 {
+        font-size: 0.9rem;
+      }
+      .feature-item p {
+        font-size: 0.82rem;
+        color: var(--text-dim);
+        margin-top: 0.25rem;
+      }
+
+      /* ─── Footer ───────────────────────────────────── */
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 3rem 0;
+        text-align: center;
+      }
+      footer p {
+        font-size: 0.82rem;
+        color: var(--text-dim);
+      }
+      footer .foot-brand {
+        font-family: var(--mono);
+        color: var(--heading);
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+      }
+
+      /* ─── Animations ───────────────────────────────── */
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes stepIn {
+        from {
+          opacity: 0;
+          transform: translateX(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      /* ─── Scroll animations ────────────────────────── */
+      .reveal {
+        opacity: 0;
+        transform: translateY(30px);
+        transition:
+          opacity 0.7s ease,
+          transform 0.7s ease;
+      }
+      .reveal.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* ─── Nav dots ──────────────────────────────────── */
+      .side-nav {
+        position: fixed;
+        right: 1.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        z-index: 100;
+      }
+      .side-nav a {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--border);
+        display: block;
+        transition:
+          background 0.3s,
+          transform 0.3s;
+      }
+      .side-nav a:hover,
+      .side-nav a.active {
+        background: var(--accent);
+        transform: scale(1.4);
+      }
+      @media (max-width: 900px) {
+        .side-nav {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Side Navigation Dots -->
+    <nav class="side-nav" id="sideNav">
+      <a href="#hero" title="Top"></a>
+      <a href="#problem" title="The Problem"></a>
+      <a href="#docs" title="Documents"></a>
+      <a href="#pipeline" title="Pipeline"></a>
+      <a href="#datacards" title="Data Cards"></a>
+      <a href="#architecture" title="Architecture"></a>
+      <a href="#features" title="Features"></a>
+    </nav>
+
+    <!-- ═══════════ HERO ═══════════ -->
+    <section class="hero" id="hero">
+      <div class="container hero-inner">
+        <div class="badge">🇫🇷 Document Intelligence</div>
+        <h1>DocGather<br /><span>Document Engine</span></h1>
+        <p class="lead">
+          An AI-powered system that automatically discovers, reads, classifies,
+          and organises your important documents — so you never have to dig
+          through folders again.
+        </p>
+      </div>
+    </section>
+
+    <!-- ═══════════ PROBLEM / SOLUTION ═══════════ -->
+    <section id="problem">
+      <div class="container reveal">
+        <div class="section-label">Why it exists</div>
+        <h2>The Problem We Solve</h2>
+        <p class="section-intro">
+          Important documents are scattered across cloud drives, emails, and
+          local folders. When you need them for a rental application, a loan, or
+          a job — finding the right files is slow, stressful, and error-prone.
+        </p>
+
+        <div class="duo-grid">
+          <div class="card">
+            <div class="icon">😰</div>
+            <h3>Without DocGather</h3>
+            <p>
+              Hours spent searching Gmail, Google Drive, phone photos, and old
+              USB sticks. Missed deadlines because the right payslip was in an
+              email from 3 months ago. Accidentally submitting an expired ID
+              card.
+            </p>
+          </div>
+          <div class="card">
+            <div class="icon">✨</div>
+            <h3>With DocGather</h3>
+            <p>
+              Upload once — the engine reads, understands, and catalogues every
+              document automatically. When you need a file for an application,
+              it's already labelled, verified, and ready to go.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ DOCUMENT TYPES ═══════════ -->
+    <section id="docs">
+      <div class="container reveal">
+        <div class="section-label">What we handle</div>
+        <h2>Document Categories</h2>
+        <p class="section-intro">
+          DocGather recognises four main families of French administrative
+          documents, from identity proofs to income statements.
+        </p>
+
+        <div class="cat-grid">
+          <div class="cat-card identity">
+            <div class="cat-icon">🪪</div>
+            <h3>Identity Proofs</h3>
+            <ul>
+              <li>National ID cards (CNI)</li>
+              <li>Passports</li>
+              <li>Driver's licences</li>
+              <li>Residence permits</li>
+            </ul>
+          </div>
+          <div class="cat-card residence">
+            <div class="cat-icon">🏠</div>
+            <h3>Proof of Residence</h3>
+            <ul>
+              <li>Utility bills (EDF, Engie)</li>
+              <li>Rent receipts</li>
+              <li>Property tax notices</li>
+              <li>Home insurance</li>
+            </ul>
+          </div>
+          <div class="cat-card work">
+            <div class="cat-icon">💼</div>
+            <h3>Work Status</h3>
+            <ul>
+              <li>Employment contracts</li>
+              <li>Business ownership (Kbis)</li>
+              <li>Professional licences</li>
+              <li>Student IDs</li>
+            </ul>
+          </div>
+          <div class="cat-card income">
+            <div class="cat-icon">💰</div>
+            <h3>Proof of Income</h3>
+            <ul>
+              <li>Tax notices (Avis d'imposition)</li>
+              <li>Payslips</li>
+              <li>Bank statements</li>
+              <li>Social security (CAF)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ PIPELINE ═══════════ -->
+    <section class="pipeline-section" id="pipeline">
+      <div class="container reveal">
+        <div class="section-label">How it works</div>
+        <h2>Processing Pipeline</h2>
+        <p class="section-intro">
+          Every document goes through a series of intelligent steps. Some are
+          optional depending on the file type — the engine decides
+          automatically.
+        </p>
+
+        <div class="pipeline">
+          <!-- 1 · Upload -->
+          <div class="step">
+            <div class="step-dot upload">📤</div>
+            <div class="step-content">
+              <div class="step-title">1 · Upload</div>
+              <div class="step-desc">
+                The document enters the system — from a mobile photo, a cloud
+                drive sync, or a local file drop. It's encrypted immediately and
+                stored securely. A content hash detects duplicates before any
+                processing begins.
+              </div>
+              <div class="step-detail">
+                Supports PDF, JPEG, PNG, HEIC, DOCX, XLSX, EML, and 20+ other
+                formats.
+              </div>
+            </div>
+          </div>
+
+          <!-- 2 · Convert to PDF -->
+          <div class="step">
+            <div class="step-dot convert">🔄</div>
+            <div class="step-content">
+              <div class="step-title">
+                2 · Convert to PDF
+                <span class="opt">optional</span>
+              </div>
+              <div class="step-desc">
+                Non-PDF files (Word, Excel, RTF, legacy Office formats, XPS,
+                Apple Pages, etc.) are converted to PDF first using LibreOffice
+                headless. This creates a common format for the analysis stages
+                that follow.
+              </div>
+              <div class="step-detail">
+                DOC / DOCX / XLS / XLSX / ODT / RTF / PAGES → PDF via
+                LibreOffice
+              </div>
+            </div>
+          </div>
+
+          <!-- 3 · Analyze -->
+          <div class="step">
+            <div class="step-dot analyze">🔍</div>
+            <div class="step-content">
+              <div class="step-title">3 · Analyse (Pre-Analysis)</div>
+              <div class="step-desc">
+                A quick scan of the document to understand its structure: How
+                many pages? Is there real selectable text, or is it a scanned
+                image? Does it look like
+                <strong>multiple documents bundled together</strong>
+                (e.g. three passport scans in one PDF)?
+              </div>
+              <div class="step-detail">
+                Outputs: pageCount, hasTextLayer, textQuality, isMultiDocument,
+                language
+              </div>
+            </div>
+          </div>
+
+          <!-- 4 · Split -->
+          <div class="step">
+            <div class="step-dot split">✂️</div>
+            <div class="step-content">
+              <div class="step-title">
+                4 · Split
+                <span class="opt">optional</span>
+              </div>
+              <div class="step-desc">
+                If the pre-analysis detected
+                <strong>multiple documents inside one file</strong>, the PDF is
+                split into separate child documents. Each child is then
+                <strong>re-queued through the full pipeline</strong>
+                independently — starting back at the analyse step.
+              </div>
+              <div class="loop-badge">
+                ↻ each child re-enters the pipeline at step 3
+              </div>
+              <div class="step-detail">
+                Example: A 6-page PDF with 3 family passports → 3 separate
+                documents, each processed and catalogued independently.
+              </div>
+            </div>
+          </div>
+
+          <!-- 5 · Convert to Image & Scale -->
+          <div class="step">
+            <div class="step-dot image">🖼️</div>
+            <div class="step-content">
+              <div class="step-title">
+                5 · Convert to Image &amp; Scale
+                <span class="opt">optional</span>
+              </div>
+              <div class="step-desc">
+                For scanned PDFs (no selectable text) or uploaded photos, pages
+                are converted to images and resized to 1024px. This keeps LLM
+                Vision costs low while preserving enough detail for accurate
+                reading.
+              </div>
+              <div class="step-detail">
+                Uses ImageMagick · Output: WebP @ 1024px longest side · Quality
+                85%
+              </div>
+            </div>
+          </div>
+
+          <!-- 6 · Pre-Filter -->
+          <div class="step">
+            <div class="step-dot image">⚡</div>
+            <div class="step-content">
+              <div class="step-title">
+                6 · Pre-Filter (Cost Saver)
+                <span class="opt">optional</span>
+              </div>
+              <div class="step-desc">
+                Before sending images to the expensive AI vision model, we run a
+                lightning-fast check to ensure they actually contain text. Blank
+                pages, blurry photos, or artistic covers are discarded
+                automatically.
+              </div>
+              <div class="step-detail">
+                Uses Tesseract OCR · Discards text-less images · Saves API costs
+              </div>
+            </div>
+          </div>
+
+          <!-- 7 · Extract Text -->
+          <div class="step">
+            <div class="step-dot extract">📝</div>
+            <div class="step-content">
+              <div class="step-title">7 · Extract Text</div>
+              <div class="step-desc">
+                The text content is extracted from the document. The engine
+                chooses the best method automatically:
+              </div>
+              <div class="step-detail">
+                <strong>Path A — Direct from PDF:</strong> If the PDF has a good
+                text layer, pdfplumber extracts text natively. Fast, free,
+                accurate.<br /><br />
+                <strong>Path B — LLM Vision:</strong> If the document is an
+                image or a scanned PDF (and passed the pre-filter), the scaled
+                images are sent to an AI vision model which "reads" the document
+                like a human would.
+              </div>
+            </div>
+          </div>
+
+          <!-- 8 · Classify -->
+          <div class="step">
+            <div class="step-dot classify">🏷️</div>
+            <div class="step-content">
+              <div class="step-title">8 · Classify</div>
+              <div class="step-desc">
+                An LLM reads the extracted text and identifies what kind of
+                document it is. It searches through
+                <strong>known Data Card types</strong> — payslip, passport,
+                utility bill, tax notice, employment contract — and picks the
+                best match with a confidence score.
+              </div>
+              <div class="step-detail">
+                Output: { documentType: "income.payslip", confidence: 0.94,
+                language: "fr" }
+              </div>
+            </div>
+          </div>
+
+          <!-- 9 · Normalize -->
+          <div class="step">
+            <div class="step-dot normalize">📋</div>
+            <div class="step-content">
+              <div class="step-title">9 · Normalise</div>
+              <div class="step-desc">
+                Now that we know the document type, an LLM extracts the specific
+                fields defined in the <strong>Data Card schema</strong> for that
+                type. A payslip yields salary, employer, and period. A passport
+                yields name, nationality, and expiry date. Data is structured
+                into our standard format.
+              </div>
+              <div class="step-detail">
+                Dates → ISO format · Amounts → numbers · Names → proper case ·
+                Stored as encrypted JSON in a Data Card.
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- /pipeline -->
+      </div>
+    </section>
+
+    <!-- ═══════════ DATA CARDS ═══════════ -->
+    <section id="datacards">
+      <div class="container reveal">
+        <div class="section-label">Structured output</div>
+        <h2>Data Cards</h2>
+        <p class="section-intro">
+          Every processed document produces a structured
+          <strong>Data Card</strong> — a standardised record with the fields
+          that matter for each document type. Here are two examples:
+        </p>
+
+        <div class="datacards-grid">
+          <div class="datacard">
+            <div class="dc-header">
+              <span>💰 Payslip</span>
+              <span class="dc-type">income.payslip</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">employee</span
+              ><span class="dc-val">Jean Dupont</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">employer</span
+              ><span class="dc-val">Acme Corp</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">period</span
+              ><span class="dc-val">2025-12</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">gross_salary</span
+              ><span class="dc-val">3 500,00 €</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">net_salary</span
+              ><span class="dc-val">2 730,00 €</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">currency</span
+              ><span class="dc-val">EUR</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">confidence</span
+              ><span class="dc-val" style="color: var(--accent-g)">94%</span>
+            </div>
+          </div>
+
+          <div class="datacard">
+            <div class="dc-header">
+              <span>🪪 Passport</span>
+              <span class="dc-type">identity.passport</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">full_name</span
+              ><span class="dc-val">Marie Dupont</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">nationality</span
+              ><span class="dc-val">Française</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">birth_date</span
+              ><span class="dc-val">1990-04-15</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">expiry_date</span
+              ><span class="dc-val">2029-06-20</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">passport_no</span
+              ><span class="dc-val">25AB12345</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">language</span><span class="dc-val">fr</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">confidence</span
+              ><span class="dc-val" style="color: var(--accent-g)">97%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="datacards-grid" style="margin-top: 1.5rem">
+          <div class="datacard">
+            <div class="dc-header">
+              <span>🏠 Utility Bill</span>
+              <span class="dc-type">residence.utility_bill</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">provider</span
+              ><span class="dc-val">EDF</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">address</span
+              ><span class="dc-val">12 Rue de la Paix, 75002 Paris</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">date</span
+              ><span class="dc-val">2025-11-15</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">amount</span
+              ><span class="dc-val">87,50 €</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">confidence</span
+              ><span class="dc-val" style="color: var(--accent-g)">92%</span>
+            </div>
+          </div>
+
+          <div class="datacard">
+            <div class="dc-header">
+              <span>💼 Employment Contract</span>
+              <span class="dc-type">work.employment_contract</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">employer</span
+              ><span class="dc-val">Tech Startup SAS</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">employee</span
+              ><span class="dc-val">Jean Dupont</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">position</span
+              ><span class="dc-val">Développeur Senior</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">start_date</span
+              ><span class="dc-val">2024-03-01</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">contract_type</span
+              ><span class="dc-val">CDI</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-key">confidence</span
+              ><span class="dc-val" style="color: var(--accent-g)">91%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ ARCHITECTURE ═══════════ -->
+    <section id="architecture">
+      <div class="container reveal">
+        <div class="section-label">Under the hood</div>
+        <h2>System Architecture</h2>
+        <p class="section-intro">
+          DocGather runs on a serverless-first stack. Documents are stored
+          encrypted in the EU, processed by scale-to-zero workers, and all
+          results flow back into a secure PostgreSQL catalogue.
+        </p>
+
+        <div class="flow-diagram">
+          <div class="flow-label">High-Level Flow</div>
+          <div class="flow-row">
+            <div class="flow-node source">📱 Mobile</div>
+            <div class="flow-node source">☁️ Cloud</div>
+            <div class="flow-node source">📁 Local</div>
+            <div class="flow-node source">📧 Email</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node process">⚡ Supabase Edge Functions</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node process">🔄 Job Queue (BullMQ)</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node process">🤖 Processing Workers</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node output">🗄️ Catalogue</div>
+          </div>
+        </div>
+
+        <div class="arch-grid">
+          <div class="arch-card">
+            <div class="arch-icon">⚡</div>
+            <h3>Supabase Edge Functions</h3>
+            <p>
+              Handle uploads, encryption, authentication, and file serving.
+              Every file is encrypted with a unique key before storage.
+            </p>
+          </div>
+          <div class="arch-card">
+            <div class="arch-icon">🔄</div>
+            <h3>BullMQ + Redis</h3>
+            <p>
+              A priority-based job queue that routes documents through the
+              processing pipeline step by step. Powered by serverless Upstash
+              Redis.
+            </p>
+          </div>
+          <div class="arch-card">
+            <div class="arch-icon">🤖</div>
+            <h3>Orchestrator</h3>
+            <p>
+              A reactive state machine that decides the next step based on
+              results from the previous one. Spawns one worker at a time then
+              suspends.
+            </p>
+          </div>
+          <div class="arch-card">
+            <div class="arch-icon">🧠</div>
+            <h3>LLM Vision &amp; Text</h3>
+            <p>
+              AI models read document images and text, classify them, and
+              extract structured data. Uses OVHcloud AI Endpoints
+              (Mistral-Small).
+            </p>
+          </div>
+          <div class="arch-card">
+            <div class="arch-icon">🔐</div>
+            <h3>Envelope Encryption</h3>
+            <p>
+              Each document has its own encryption key. These keys are
+              themselves encrypted with a master key stored in Supabase Vault.
+            </p>
+          </div>
+          <div class="arch-card">
+            <div class="arch-icon">🇪🇺</div>
+            <h3>GDPR by Design</h3>
+            <p>
+              All data stays in EU regions. Soft-delete with full audit trails.
+              PII is encrypted and never exposed to the UI directly.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ FEATURES ═══════════ -->
+    <section id="features">
+      <div class="container reveal">
+        <div class="section-label">Capabilities</div>
+        <h2>Key Features</h2>
+        <p class="section-intro">
+          Beyond the processing engine, DocGather provides a complete document
+          management experience tailored for French administrative needs.
+        </p>
+
+        <div class="features-grid">
+          <div class="feature-item">
+            <div class="f-icon">🔍</div>
+            <div>
+              <h3>Multi-Source Discovery</h3>
+              <p>
+                Connect Google Drive, OneDrive, Dropbox, Gmail, and local files.
+              </p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="f-icon">🏷️</div>
+            <div>
+              <h3>Auto-Classification</h3>
+              <p>
+                Documents are categorised by type, date, and relevance — no
+                manual tagging.
+              </p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="f-icon">📊</div>
+            <div>
+              <h3>Application Templates</h3>
+              <p>
+                Pre-built checklists for rental, loan, and hiring applications.
+              </p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="f-icon">🎯</div>
+            <div>
+              <h3>Smart Recommendations</h3>
+              <p>
+                AI picks the best document for each slot based on quality and
+                recency.
+              </p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="f-icon">👥</div>
+            <div>
+              <h3>Family &amp; Business</h3>
+              <p>
+                Manage documents for household members and business entities.
+              </p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="f-icon">🔔</div>
+            <div>
+              <h3>Proactive Alerts</h3>
+              <p>
+                Notifications for expiring documents, deadlines, and missing
+                items.
+              </p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="f-icon">⏰</div>
+            <div>
+              <h3>Validity Tracking</h3>
+              <p>
+                Monitors expiration dates and flags utility bills older than 3
+                months.
+              </p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="f-icon">🔒</div>
+            <div>
+              <h3>End-to-End Encryption</h3>
+              <p>
+                Every file encrypted with its own key. RGPD / GDPR compliant.
+              </p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="f-icon">🇫🇷</div>
+            <div>
+              <h3>French Market Focus</h3>
+              <p>
+                Recognises CNI, Kbis, Avis d'imposition, Quittances, Cerfa
+                forms.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ FOOTER ═══════════ -->
+    <footer>
+      <div class="container">
+        <p class="foot-brand">📄 DocGather — Document Engine</p>
+        <p>
+          Intelligent Document Search, Extraction &amp; Cataloguing · Built for
+          France · February 2026
+        </p>
+      </div>
+    </footer>
+
+    <!-- ═══════════ Scripts ═══════════ -->
+    <script>
+      // Scroll-reveal
+      const reveals = document.querySelectorAll(".reveal");
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              e.target.classList.add("visible");
+            }
+          });
+        },
+        { threshold: 0.12 },
+      );
+      reveals.forEach((el) => observer.observe(el));
+
+      // Active nav dot
+      const sections = document.querySelectorAll("section[id]");
+      const dots = document.querySelectorAll(".side-nav a");
+      window.addEventListener("scroll", () => {
+        let current = "";
+        sections.forEach((s) => {
+          if (window.scrollY >= s.offsetTop - 300) {
+            current = s.id;
+          }
+        });
+        dots.forEach((d) => {
+          d.classList.toggle(
+            "active",
+            d.getAttribute("href") === "#" + current,
+          );
+        });
+      });
+    </script>
+  </body>
+</html>

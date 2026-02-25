@@ -1,0 +1,37 @@
+{
+  "name": "docgather",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "database-types": "supabase gen types typescript --local > supabase/functions/_shared/database.types.ts",
+    "supabase:serve": "npx supabase functions serve --env-file=.env.local",
+    "supabase:restart": "npx supabase stop && npx supabase start && docker restart supabase_auth_DocGather && npm run supabase:serve",
+    "supabase:start": "npx supabase start && docker restart supabase_auth_DocGather && npm run supabase:serve",
+    "supabase:stop": "npx supabase stop",
+    "supabase:reset": "npx -y tsx supabase/seed.ts && npx supabase db reset && npm run database-types",
+    "test": "deno test --allow-all --env-file=.env.local supabase/functions/",
+    "test:crypto": "deno test --allow-read supabase/functions/_shared/crypto.test.ts",
+    "test:storage": "deno test --allow-read supabase/functions/_shared/storage.test.ts",
+    "test:mime": "deno test --allow-read supabase/functions/_shared/mime-detection.test.ts",
+    "test:validation": "deno test --allow-read supabase/functions/_shared/validation.test.ts",
+    "test:documents": "deno test --allow-all --env-file=.env.local supabase/functions/documents.test.ts",
+    "test:rls": "docker cp supabase/tests/rls_policies.test.sql supabase_db_DocGather:/tmp/rls_test.sql && docker exec supabase_db_DocGather sed -i \"s/\\r$//\" /tmp/rls_test.sql && docker exec supabase_db_DocGather psql -U postgres -d postgres -f /tmp/rls_test.sql"
+  },
+  "devDependencies": {
+    "@types/node": "^25.1.0",
+    "dotenv": "^17.2.4",
+    "supabase": "^2.76.8",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.95.3",
+    "ignore": "^7.0.5"
+  }
+}
