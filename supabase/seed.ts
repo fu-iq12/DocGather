@@ -1,3 +1,7 @@
+/**
+ * Vault Seed Generator
+ * Synthesizes a SQL migration payload from `.env.local` to securely persist cryptographic keys and service credentials into Supabase Vault.
+ */
 import fs from "node:fs";
 import path from "node:path";
 
@@ -23,9 +27,10 @@ if (!fs.existsSync(secretsPath)) {
 const content = fs.readFileSync(secretsPath, "utf-8");
 const lines = content.split("\n");
 
-let sql = `-- Auto-generated seed file from .env.local\n`;
-sql += `-- Generated at ${new Date().toISOString()}\n\n`;
-sql += `-- Create secrets in Supabase Vault\n`;
+let sql = `-- Vault Seed Payload\n`;
+sql += `-- Auto-generated from .env.local at ${new Date().toISOString()}\n`;
+sql += `-- @see architecture/documents-checklist.md - "Vault Master Key handling"\n\n`;
+sql += `-- Store cryptographic and service secrets into Supabase Vault\n`;
 
 let count = 0;
 

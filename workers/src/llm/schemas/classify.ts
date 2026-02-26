@@ -1,14 +1,12 @@
 import { z } from "zod";
 import { DOCUMENT_TYPES } from "./document-types/index.js";
 
-// --- Classification Schema ---
-
+/**
+ * Zod schema defining the output constraint for the classification agent.
+ * Maps dynamic taxonomy definitions into a strict Zod enum to prevent hallucinated types.
+ */
 const validDocumentTypes = [...DOCUMENT_TYPES.map((t) => t.id)] as const;
 
-// We need a tuple for Zod Enum, but dynamic array is string[].
-// Zod enum requires [string, ...string[]].
-// Workaround: Use z.enum with spread if possible or custom refinement.
-// For strict typing, we can cast.
 const docTypeEnum = z.enum(
   validDocumentTypes as unknown as [string, ...string[]],
 );

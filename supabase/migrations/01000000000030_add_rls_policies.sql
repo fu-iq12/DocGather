@@ -1,5 +1,6 @@
 -- =============================================================================
--- Phase 3: Security Layer (Row Level Security)- @documents-checklist.md
+-- Phase 3: Security Layer (Row Level Security)
+-- @see architecture/documents-checklist.md
 -- =============================================================================
 -- Purpose: Enable RLS on all document tables and create access policies.
 -- Policy design:
@@ -197,3 +198,4 @@ create policy "Service role can insert access logs"
   with check (true);
 
 -- No UPDATE or DELETE policies - audit logs are immutable
+

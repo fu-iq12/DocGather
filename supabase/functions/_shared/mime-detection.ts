@@ -1,6 +1,8 @@
 /**
- * MIME type detection utilities using magic bytes and mime-types.
- * Detects actual file type from content, not just extension/header.
+ * MIME Classification Service
+ * Inspects file magic bytes and structure to authoritatively determine true document formats.
+ *
+ * @see architecture/details/document-types-and-processing.md - "MIME Types taxonomy"
  */
 
 import { fileTypeFromBuffer } from "https://esm.sh/file-type@19.6.0";

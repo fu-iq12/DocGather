@@ -115,3 +115,4 @@ COMMENT ON FUNCTION retry_errored_documents IS
 -- =============================================================================
 -- To enable in production, run:
 -- SELECT cron.schedule('retry-errored-docs', '0 * * * *', 'SELECT * FROM retry_errored_documents()');
+

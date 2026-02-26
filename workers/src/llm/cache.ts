@@ -1,8 +1,8 @@
 /**
- * LLM Response Cache
- *
- * Caches LLM responses to disk for faster development iteration.
- * Cache key: <file hash>/<request hash>/<model id>.json
+ * Local filesystem cache for LLM request/response pairs.
+ * Used primarily during development to avoid redundant API calls and costs
+ * for identically processed documents or images.
+ * Cache key: <model id>/<prompt hash>/<content hash>.json
  */
 
 import { createHash } from "crypto";
@@ -21,14 +21,14 @@ type CacheRequest =
     };
 
 /**
- * Generate a hash for cache key
+ * Generates a SHA-256 hash truncated to 16 characters for cache key derivation.
  */
 function hash(input: string): string {
   return createHash("sha256").update(input).digest("hex").slice(0, 16);
 }
 
 /**
- * Generate cache key from messages and model
+ * Derives a unique deterministic cache key from the model identifier, system prompt, and user content (text or image).
  */
 function getCacheKey(
   request: CacheRequest,
@@ -50,13 +50,13 @@ function getCacheKey(
 }
 
 /**
- * LLM Response Cache
+ * Manages the persistence and retrieval of LLM responses on the local filesystem.
  */
 export class LLMCache {
   constructor(private cacheDir: string) {}
 
   /**
-   * Get cache file path
+   * Constructs the physical path for a cache file.
    */
   private getCachePath(
     prefix: string,
@@ -75,7 +75,7 @@ export class LLMCache {
   }
 
   /**
-   * Try to get cached response
+   * Retrieves a cached LLM response if it exists and matches the deterministic request parameters.
    */
   async get(
     request: CacheRequest,
@@ -101,7 +101,7 @@ export class LLMCache {
   }
 
   /**
-   * Store response in cache
+   * Serializes and writes an LLM response to the disk cache.
    */
   async set(
     request: CacheRequest,
@@ -127,7 +127,7 @@ export class LLMCache {
   }
 
   /**
-   * Delete a cached response
+   * Removes a specific cached request/response pair from the disk.
    */
   async delete(
     request: CacheRequest,
@@ -152,7 +152,7 @@ export class LLMCache {
   }
 
   /**
-   * Check if cache is enabled and accessible
+   * Verifies the cache directory exists and can be written to.
    */
   async isEnabled(): Promise<boolean> {
     try {

@@ -1,5 +1,6 @@
 -- =============================================================================
--- Phase 4.5: Supabase-side RPC Functions- @documents-checklist.md
+-- Phase 4.5: Supabase-side RPC Functions
+-- @see architecture/documents-checklist.md
 -- =============================================================================
 -- User-callable RPC functions for document operations.
 -- =============================================================================
@@ -118,3 +119,4 @@ $$;
 REVOKE ALL ON FUNCTION soft_delete_document FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION soft_delete_document TO authenticated;
 GRANT EXECUTE ON FUNCTION soft_delete_document TO service_role;
+

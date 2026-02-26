@@ -1,5 +1,6 @@
 /**
- * Tests for validation utilities.
+ * Validation Suite: validation
+ * Tests the validation module for expected architectural behaviors and edge cases.
  */
 
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
@@ -32,3 +33,4 @@ Deno.test("isValidFileSize - custom max size", () => {
 Deno.test("MAX_FILE_SIZE - is 50 MiB", () => {
   assertEquals(MAX_FILE_SIZE, 50 * 1024 * 1024);
 });
+

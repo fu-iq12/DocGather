@@ -1,7 +1,9 @@
 import { z } from "zod";
 
-// --- OCR Schema ---
-
+/**
+ * Structural definition for LLM-based OCR outputs.
+ * Separates raw text from structured blocks (tables, sections) and captures language metadata.
+ */
 export const llmOcrSchema = z.object({
   documentDescription: z
     .string()

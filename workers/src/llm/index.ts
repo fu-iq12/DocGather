@@ -1,8 +1,9 @@
 /**
- * LLM Client
+ * Unified interface orchestrating all external LLM interactions.
+ * Connects the 'pdf-simple-extract', 'llm-ocr', 'llm-classify', and 'llm-normalize'
+ * steps to their configured providers (OVHcloud, Mistral, Ollama) while managing caching transparently.
  *
- * Unified interface for LLM providers with optional caching.
- * Supports separate models for Vision and Text tasks.
+ * @see architecture/details/document-types-and-processing.md - "Simplified PDF Processing Flow"
  */
 
 import type {
@@ -21,7 +22,8 @@ import { LLMCache } from "./cache.js";
 import { MistralOcrProvider } from "./providers/mistral-ocr.js";
 
 /**
- * Create LLM provider based on configuration
+ * Factory function instantiating the appropriate provider client (Generic, Mistral, Ollama, etc.)
+ * based on the environment configuration and injecting the necessary API keys.
  */
 function createProvider(modelConfig: ModelConfig): LLMProvider {
   switch (modelConfig.provider) {
@@ -63,7 +65,7 @@ function createProvider(modelConfig: ModelConfig): LLMProvider {
 }
 
 /**
- * LLM Client with caching support
+ * Orchestrator client exposing high-level methods for vision, targeted OCR, and structured text tasks.
  */
 export class LLMClient {
   private visionProvider: LLMProvider;
@@ -84,22 +86,16 @@ export class LLMClient {
       : null;
   }
 
-  /**
-   * Get the current vision model
-   */
   get visionModel(): string {
     return this.config.vision.model;
   }
 
-  /**
-   * Get the current text model
-   */
   get textModel(): string {
     return this.config.text.model;
   }
 
   /**
-   * Send a vision request (uses Vision model)
+   * Executes a Vision model request for generic image analysis or fallback extraction.
    */
   async vision(
     systemPrompt: string,
@@ -148,7 +144,7 @@ export class LLMClient {
   }
 
   /**
-   * Send an OCR request (uses OCR model)
+   * Executes a specialized OCR model request (e.g., mistral-ocr) optimized for dense document extraction.
    */
   async ocr(
     systemPrompt: string,
@@ -197,7 +193,7 @@ export class LLMClient {
   }
 
   /**
-   * Send a text/classify request (uses Text model)
+   * Executes a standard text-based LLM request for classification and normalization tasks.
    */
   async chat(
     systemPrompt: string,

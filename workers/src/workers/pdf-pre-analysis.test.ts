@@ -1,5 +1,6 @@
 /**
- * Tests for pdf-pre-analysis worker
+ * Validation Suite: pdf-pre-analysis
+ * Tests the pdf-pre-analysis module for expected architectural behaviors and edge cases.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -258,3 +259,4 @@ describe("pdf-pre-analysis worker", () => {
     });
   });
 });
+

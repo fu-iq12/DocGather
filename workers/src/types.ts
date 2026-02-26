@@ -1,7 +1,9 @@
 /**
- * Message Types for Worker Communication
+ * Subtask interface contracts and payload definitions.
+ * Establishes strict structural boundaries between the orchestrator
+ * state machine and individual processing workers.
  *
- * Defines the contracts between orchestrator and subtask workers.
+ * @see architecture/processing-workers.md - "Message Contracts"
  */
 
 // ============================================================================

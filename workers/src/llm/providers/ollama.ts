@@ -1,8 +1,6 @@
 /**
- * Ollama Provider
- *
- * Local LLM provider for development and testing.
- * Uses Ollama's OpenAI-compatible API.
+ * Local development provider targeting an Ollama instance.
+ * Adapts generic payloads with Ollama-specific options (e.g., num_ctx) to manage local VRAM constraints.
  */
 
 import type {
@@ -15,7 +13,7 @@ import { GenericProvider } from "./generic.js";
 export class OllamaProvider extends GenericProvider {
   name = "ollama";
 
-  /** Mutex queue to prevent concurrent Ollama API calls */
+  /** Serializes API calls via a mutex to prevent crashing local instances with concurrent requests */
   _chatQueue: Promise<void> = Promise.resolve();
 
   constructor(
@@ -39,15 +37,13 @@ export class OllamaProvider extends GenericProvider {
       max_tokens: options?.maxTokens ?? 4096,
       stream: false,
       keep_alive: "5m",
-      // Ollama-specific: limit context window to save VRAM
+      // Constrain context size relative to VRAM allocation (numCtx)
       options: {
         num_ctx: this.defaultNumCtx,
       },
     };
 
-    // Ollama supports structured outputs via "format" parameter with JSON schema
-    // https://ollama.com/blog/structured-outputs
-    // Ollama support for structured outputs
+    // Map OpenAI structured outputs to Ollama's native 'format' schema
     if (options?.responseFormat) {
       if (
         options.responseFormat.type === "json_schema" &&
@@ -66,7 +62,7 @@ export class OllamaProvider extends GenericProvider {
     messages: ChatMessage[],
     options?: ChatRequestOptions,
   ): Promise<ChatResponse> {
-    // Serialize calls — wait for any in-flight request to finish before starting
+    // Queue execution to prevent OOM on local Ollama server
     return new Promise<ChatResponse>((resolve, reject) => {
       this._chatQueue = this._chatQueue.then(async () => {
         try {

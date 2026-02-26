@@ -1,5 +1,6 @@
 /**
- * Tests for MistralRateLimiter
+ * Validation Suite: mistral-rate-limiter
+ * Tests the mistral-rate-limiter module for expected architectural behaviors and edge cases.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -176,3 +177,4 @@ describe("MistralRateLimiter", () => {
     });
   });
 });
+

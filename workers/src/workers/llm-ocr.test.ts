@@ -1,5 +1,6 @@
 /**
- * Tests for llm-ocr worker (formerly image-text-extraction)
+ * Validation Suite: llm-ocr
+ * Tests the llm-ocr module for expected architectural behaviors and edge cases.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -201,3 +202,4 @@ describe("llm-ocr worker", () => {
     });
   });
 });
+

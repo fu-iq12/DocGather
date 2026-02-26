@@ -1,6 +1,6 @@
 /**
- * Unit tests for storage utilities.
- * Run with: deno test supabase/functions/_shared/storage.test.ts
+ * Validation Suite: storage
+ * Tests the storage module for expected architectural behaviors and edge cases.
  */
 
 import {
@@ -79,3 +79,4 @@ Deno.test("extractOwnerIdFromPath - works with minimal path", () => {
 Deno.test("BUCKETS - has correct bucket names", () => {
   assertEquals(BUCKETS.DOCUMENTS, "documents");
 });
+

@@ -28,3 +28,4 @@ $$;
 -- Restrict to service_role only
 REVOKE ALL ON FUNCTION get_vault_secret(TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION get_vault_secret(TEXT) TO service_role;
+

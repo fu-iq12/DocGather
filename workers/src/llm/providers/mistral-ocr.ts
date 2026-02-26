@@ -1,7 +1,8 @@
 /**
- * Mistral OCR Provider
+ * Dedicated provider for the 'mistral-ocr' pipeline endpoint.
+ * Bypasses standard chat formatting, directly transmitting document images to the proprietary OCR API.
  *
- * Uses the shared MistralRateLimiter to respect Mistral's global API rate limit.
+ * @see architecture/details/document-types-and-processing.md - "Phase 10: LLM OCR"
  */
 
 import type { ChatRequestOptions, ChatResponse } from "../types.js";

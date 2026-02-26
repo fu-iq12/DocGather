@@ -1,3 +1,9 @@
+/**
+ * Defines the system prompt for the classification LLM task.
+ * Enforces strict adherence to the DocumentGather taxonomy and handles unknown/other document scenarios.
+ *
+ * @see architecture/details/document-types-and-processing.md - "Stage 2: Classification"
+ */
 import { llmClassificationSchema } from "../schemas/classify.js";
 import { getSystemPromptTaxonomy } from "../schemas/document-types/index.js";
 import { zodToTs } from "../schemas/utils.js";

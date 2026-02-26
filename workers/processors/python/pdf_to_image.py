@@ -1,3 +1,9 @@
+"""
+First-page PDF rasterization utility via pdf2image.
+Downscales and transcodes into highly compressed WebP format for LLM vision optimization.
+
+@see architecture/details/document-types-and-processing.md - "Image Scaling Strategy"
+"""
 import sys
 import json
 import argparse
@@ -5,10 +11,6 @@ from pathlib import Path
 from pdf2image import convert_from_path
 
 def convert_pdf_to_image(pdf_path, output_dir):
-    """
-    Convert first page of PDF to WebP image.
-    Scale to max 1536px on longest side.
-    """
     try:
         # 1. Convert first page to image (300 DPI)
         # fmt='webp' is not supported by pdf2image directly save, 

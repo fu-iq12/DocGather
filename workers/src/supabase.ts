@@ -1,7 +1,9 @@
 /**
- * Supabase Client & Write-back Utilities
+ * Supabase infrastructure client and state persistence layer.
+ * Manages remote state synchronization, edge function RPC invocations for storage,
+ * and handles cryptographic payload versioning via DEK master keys.
  *
- * Handles communication with Supabase for storage operations and RPC calls.
+ * @see architecture/documents-checklist.md - "Database Foundation & Storage"
  */
 
 import { createClient, SupabaseClient } from "@supabase/supabase-js";

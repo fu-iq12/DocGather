@@ -1,8 +1,6 @@
 /**
- * Phase 4 Test Protocol
- * Integration tests for document Edge Functions and RPC.
- *
- * Run with: deno test --allow-all --env-file=.env.local supabase/functions/phase4.test.ts
+ * Validation Suite: documents
+ * Tests the documents module for expected architectural behaviors and edge cases.
  */
 
 import {
@@ -390,3 +388,4 @@ Deno.test("Cleanup: Delete test user", async () => {
   await supabase.auth.admin.deleteUser(testUserId);
   testUserId = null;
 });
+

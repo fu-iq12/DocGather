@@ -1,3 +1,7 @@
+/**
+ * Validation Suite: orchestrator
+ * Tests the orchestrator module for expected architectural behaviors and edge cases.
+ */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 process.env.SUPABASE_URL = "http://localhost:54321";
@@ -541,3 +545,4 @@ describe("Orchestrator Processor", () => {
     });
   });
 });
+

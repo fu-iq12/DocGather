@@ -1,12 +1,8 @@
 /**
- * LLM Provider Types
- *
- * Abstractions for vision LLM providers (OVHcloud, Ollama).
+ * Core type abstractions for LLM configuration, provider interfaces, and chat representations.
+ * Ensures consistent inputs and outputs across localized dev instances (Ollama) and production endpoints (OVHcloud, Mistral).
  */
 
-/**
- * Message content for vision requests
- */
 export interface VisionContent {
   type: "text" | "image_url";
   text?: string;
@@ -15,17 +11,11 @@ export interface VisionContent {
   };
 }
 
-/**
- * Chat message format (OpenAI-compatible)
- */
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string | VisionContent[];
 }
 
-/**
- * Chat request options
- */
 export interface ChatRequestOptions {
   model?: string;
   temperature?: number;
@@ -45,9 +35,6 @@ export interface ChatRequestOptions {
   };
 }
 
-/**
- * Chat response
- */
 export interface ChatResponse {
   content: string;
   model: string;
@@ -60,9 +47,6 @@ export interface ChatResponse {
   cached?: boolean;
 }
 
-/**
- * LLM Provider interface
- */
 export interface LLMProvider {
   name: string;
 
@@ -80,12 +64,6 @@ export interface LLMProvider {
   ): Promise<ChatResponse>;
 }
 
-/**
- * Provider configuration
- */
-/**
- * specific provider configuration
- */
 export interface ModelConfig {
   provider: "ovhcloud" | "mistral" | "ollama" | "mistral-ocr";
   endpoint: string;
@@ -93,9 +71,6 @@ export interface ModelConfig {
   numCtx: number;
 }
 
-/**
- * Global LLM configuration
- */
 export interface LLMConfig {
   cache: {
     enabled: boolean;
@@ -106,9 +81,6 @@ export interface LLMConfig {
   text: ModelConfig;
 }
 
-/**
- * Get default configuration from environment
- */
 export function getDefaultConfig(): LLMConfig {
   const cacheEnabled = process.env.LLM_CACHE_ENABLED === "true";
   const cacheDir = process.env.LLM_CACHE_DIR || "/app/cache";

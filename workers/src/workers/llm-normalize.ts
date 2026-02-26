@@ -1,9 +1,8 @@
 /**
- * LLM Normalize Worker (formerly Extraction)
+ * Subtask processing unit responsible for mutating free-form document text into strongly-typed
+ * structured JSON per the \`DOCUMENT_TYPES\` taxonomy constraints. Validates via Zod.
  *
- * Extracts structured data from normalized text/images using schema definitions.
- * - Validates output against Zod schema.
- * - Uses DocumentTypeDefinition for prompting.
+ * @see architecture/processing-workers.md - "Phase 12: LLM Normalization"
  */
 
 import { Worker, Job } from "bullmq";

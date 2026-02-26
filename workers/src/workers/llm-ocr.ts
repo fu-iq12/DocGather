@@ -1,9 +1,8 @@
 /**
- * LlmOcr Worker (formerly Image Text Extraction)
+ * Subtask processing unit that drives the dense Vision OCR pipeline.
+ * Extracts flat textual representations from complex layouts alongside structural layout markers and languages.
  *
- * Uses LLM Vision to extract text from images and scanned PDFs.
- * Also identifies the document type for early classification hints.
- * Supports OVHcloud AI Endpoints and local Ollama for testing.
+ * @see architecture/processing-workers.md - "Phase 10: LLM OCR"
  */
 
 import { Worker, Job } from "bullmq";

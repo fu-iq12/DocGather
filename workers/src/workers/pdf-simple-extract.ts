@@ -1,9 +1,8 @@
 /**
- * PDF Simple Extract Worker
+ * Subtask processing unit that extracts text from digital-native PDFs using Python/pdfplumber.
+ * Triggered only for PDFs verified to have a pristine text layer during pre-analysis, bypassing OCR.
  *
- * Extracts text from digital-native PDFs using Python/pdfplumber.
- * Only runs on PDFs that have been identified as having a "good" text layer
- * during the pre-analysis phase.
+ * @see architecture/processing-workers.md - "Phase 5: Digital PDF Extraction"
  */
 
 import { Worker, Job } from "bullmq";

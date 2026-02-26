@@ -1,8 +1,8 @@
 /**
- * queue-job Edge Function
- * Adds document processing jobs to BullMQ via Fly.io worker.
+ * Job Dispatcher (Edge Function)
+ * Pushes document state progression into the BullMQ orchestrator via the Fly.io worker API.
  *
- * Called after successful upload to trigger async processing.
+ * @see architecture/processing-workers.md - "Orchestrator State Machine"
  */
 
 import { createServiceClient, getUserFromAuth } from "../_shared/supabase.ts";

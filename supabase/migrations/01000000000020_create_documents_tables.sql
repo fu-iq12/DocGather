@@ -1,5 +1,6 @@
 -- =============================================================================
--- Phase 1: Database Foundation- @documents-checklist.md
+-- Phase 1: Database Foundation
+-- @see architecture/documents-checklist.md
 -- =============================================================================
 -- Creates core tables for document management with GDPR-compliant soft delete,
 -- envelope encryption support, and audit logging.
@@ -246,3 +247,4 @@ REVOKE ALL ON public.document_private_decoded FROM authenticated;
 -- Grant select only to service_role (and postgres)
 GRANT SELECT ON public.document_private_decoded TO service_role;
 GRANT SELECT ON public.document_private_decoded TO postgres;
+

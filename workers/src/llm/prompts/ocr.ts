@@ -1,20 +1,13 @@
 import { zodToTs } from "../schemas/utils.js";
 import { llmOcrSchema } from "../schemas/ocr.js";
 
-// - Use a structured, nested JSON representation
-// - "documentTypeConfidence" reflects confidence in the identified document category
-
-// CONFIDENCE SCORING:
-// - "extractionConfidence" reflects confidence that ALL visible text has been correctly captured
-// - Base extraction confidence on factors such as:
-//   - image quality (blur, glare, resolution)
-//   - presence of handwritten or stamped text
-//   - amount of [unclear] or [illegible] markers
-//   - cropped or partially visible areas
-// - Use a value between 0.0 (very poor extraction) and 1.0 (near-perfect extraction)
-// - Do NOT inflate confidence when large portions of text are unclear or missing
-
-// System prompt for OCR + document identification
+/**
+ * System prompt definition for the high-end Vision OCR fallback.
+ * Instructs the Vision LLM (like mistral-ocr) to perform meticulous text extraction
+ * while maintaining document structure, bypassing standard tools like pdfplumber.
+ *
+ * @see architecture/details/document-types-and-processing.md - "Phase 10: LLM OCR"
+ */
 export const OCR_SYSTEM_PROMPT = `
 You are a document analyzer for a vision-based document processing pipeline.
 

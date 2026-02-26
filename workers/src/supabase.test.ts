@@ -1,7 +1,6 @@
 /**
- * Tests for supabase.ts
- *
- * Tests write-back utilities with mocked Supabase client.
+ * Validation Suite: supabase
+ * Tests the supabase module for expected architectural behaviors and edge cases.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -361,3 +360,4 @@ describe("supabase", () => {
     });
   });
 });
+

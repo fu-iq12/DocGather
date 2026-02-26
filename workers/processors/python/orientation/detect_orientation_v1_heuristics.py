@@ -1,19 +1,8 @@
 """
-Image Orientation Detection
+Legacy V1 orientation detection utilizing pure computer vision heuristics.
+Analyzes projection profiles, edge histograms, and connected components to infer rotation.
 
-Detects the correct upright orientation of document images using
-content-aware heuristics. Returns the optimal rotation (0/90/180/270)
-and a confidence score.
-
-Heuristics used:
-- Projection profiles (horizontal vs vertical text line energy)
-- Edge direction histograms (horizontal vs vertical gradients)
-- Connected component statistics (glyph shape & row clustering)
-- Aspect ratio prior (portrait preference for documents)
-- EXIF orientation hint (bonus, not authoritative)
-
-Usage: python detect_orientation.py <image_path>
-Output: JSON to stdout
+@see architecture/details/document-types-and-processing.md - "Image Scaling Strategy"
 """
 
 import sys

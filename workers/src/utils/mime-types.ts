@@ -1,6 +1,8 @@
 /**
- * Centralized MIME Type mappings and helper functions for DocGather Workers.
- * This ensures consistency across routing (orchestrator) and processing (format-conversion).
+ * Centralized MIME Type classification and grouping taxonomy.
+ * Provides canonical truth for input routing and format conversion heuristics.
+ *
+ * @see architecture/details/document-types-and-processing.md - "Document Taxonomy"
  */
 
 export const IMAGE_MIME_TYPES = new Set([

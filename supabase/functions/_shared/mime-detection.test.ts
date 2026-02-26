@@ -1,5 +1,6 @@
 /**
- * Tests for MIME type detection utilities.
+ * Validation Suite: mime-detection
+ * Tests the mime-detection module for expected architectural behaviors and edge cases.
  */
 
 import {
@@ -141,3 +142,4 @@ Deno.test("getExtensionForMime - returns correct extensions", () => {
 Deno.test("getExtensionForMime - returns bin for unknown", () => {
   assertEquals(getExtensionForMime("application/x-custom"), "bin");
 });
+

@@ -1,9 +1,6 @@
 /**
- * Mistral Provider
- *
- * Extends GenericProvider with global Mistral rate limiting.
- * All chat/vision calls are routed through the shared MistralRateLimiter
- * to respect Mistral's global API rate limit.
+ * Thin wrapper over GenericProvider specifically for Mistral's API endpoints.
+ * Injects a global rate-limiter interceptor across all requests to adhere to tight concurrent limits.
  */
 
 import type {

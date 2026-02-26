@@ -1,10 +1,8 @@
 """
-Image Orientation Detection (DocTR)
+Alternative orientation detection driver using DocTR OCR confidence scoring.
+Evaluates rotation candidates via full OCR passes when OSD heuristics fail.
 
-Uses DocTR OCR confidence scoring to select best
-rotation among 0/90/180/270.
-
-CPU compatible.
+@see architecture/details/document-types-and-processing.md - "Image Scaling Strategy"
 """
 
 import json

@@ -1,13 +1,9 @@
 /**
- * Orchestrator Worker
+ * Central State Machine for the document processing lifecycle.
+ * Implements a reactive, sequential workflow utilizing BullMQ FlowProducers
+ * to orchestrate isolated subtask workers based on dynamic heuristics.
  *
- * Uses BullMQ FlowProducer to spawn child jobs for document processing.
- * Routes jobs based on MIME type - orchestrator decides which workers to invoke.
- *
- * REACTIVE ARCHITECTURE:
- * The orchestrator is a multi-step state machine. It does NOT spawn all children upfront.
- * Instead, it spawns one step, waits for it to complete (moveToWaitingChildren),
- * reads the result, and then dynamically decides the next step.
+ * @see architecture/processing-workers.md - "Orchestrator Role"
  */
 
 import { Worker, Job, WaitingChildrenError } from "bullmq";
@@ -63,9 +59,7 @@ export enum Step {
 // ============================================================================
 
 /**
- * BullMQ `getChildrenValues()` keys results by qualified key
- * (e.g., "bull:image-scaling:abc123"), not by bare job name.
- * This helper finds the first value whose key contains the queue name.
+ * Extracts isolated subtask returns from BullMQ's qualified key structure.
  */
 export function findChildValue(
   childrenValues: Record<string, any>,
@@ -175,9 +169,8 @@ export const orchestratorProcessor = async (job: Job, token?: string) => {
   let currentStep = job.data.step as Step;
   const input = job.data as SubtaskInput;
 
-  // Loop until Finalize or suspension
-  // We use a loop to allow multiple synchronous steps to execute in one go
-  // if they don't need to wait for children.
+  // Synchronous phase loop: Allows non-blocking state transitions to execute
+  // consecutively within the same worker tick until an asynchronous subtask boundary is hit.
   try {
     while (currentStep !== Step.Finalize) {
       switch (currentStep) {
@@ -299,10 +292,6 @@ export const orchestratorProcessor = async (job: Job, token?: string) => {
         case Step.Routing: {
           const { preAnalysis } = input;
           if (!preAnalysis) {
-            // Should not happen for PDF path
-            console.error(
-              `[Orchestrator] Doc ${input.documentId}: Missing pre-analysis`,
-            );
             currentStep = Step.Finalize;
             break;
           }

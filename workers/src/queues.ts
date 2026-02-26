@@ -1,7 +1,9 @@
 /**
- * BullMQ Queue Definitions
+ * Core BullMQ connection and queue topology.
+ * Defines the centralized orchestrator queue and isolated worker queues
+ * to ensure deterministic routing of subtasks across the distributed worker pool.
  *
- * Defines the Redis connection and queues for document processing.
+ * @see architecture/processing-workers.md - "High-Level Architecture"
  */
 
 import { Queue, QueueEvents } from "bullmq";

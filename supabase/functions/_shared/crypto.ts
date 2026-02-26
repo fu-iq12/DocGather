@@ -1,7 +1,8 @@
 /**
- * Crypto utilities for document encryption/decryption.
- * Uses Web Crypto API (native to Deno) for AES-256-GCM file encryption.
- * DEK encryption/decryption is handled by PostgreSQL functions via RPC.
+ * Cryptographic Primitive Wrapper
+ * Provides AES-256-GCM symmetric encryption for documents and interfaces with Vault RPCs for key management.
+ *
+ * @see architecture/documents-checklist.md - "Encryption implementation"
  */
 
 /**

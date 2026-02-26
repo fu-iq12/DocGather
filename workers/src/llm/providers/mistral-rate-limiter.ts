@@ -1,15 +1,7 @@
 /**
- * Mistral Global Rate Limiter
- *
- * Singleton token-bucket rate limiter shared across all Mistral-based providers
- * (mistral chat + mistral-ocr). Mistral enforces a global API rate limit
- * across all endpoints sharing the same API key.
- *
- * On 429 rate-limit errors, the request is re-enqueued at the front of the
- * queue and retried after the next spacing interval (unlimited retries).
- * Payloads >= 195KB that get 429 are NOT retried (payload-too-large, not rate limit).
- *
- * Controlled by MISTRAL_MAX_RPS env var (default: 1 request per second).
+ * Singleton leaky-bucket rate limiter coordinating all active Mistral requests.
+ * Circumvents Mistral's strict global 1RPS limit (across both text and OCR endpoints).
+ * Intercepts 429 errors and automatically re-queues them, unless the payload exceeds the 195KB limit constraint (misidentified as 429 by Mistral).
  */
 
 interface QueueItem<T> {
@@ -48,9 +40,7 @@ export class MistralRateLimiter {
   }
 
   /**
-   * Execute an async function through the rate limiter.
-   * @param fn - The async function to execute
-   * @param bodySizeBytes - Request body size in bytes (for payload-too-large detection)
+   * Queues an asynchronous request, blocking execution until the rate limiter permits dispatch.
    */
   execute<T>(fn: () => Promise<T>, bodySizeBytes?: number): Promise<T> {
     return new Promise<T>((resolve, reject) => {
@@ -72,7 +62,7 @@ export class MistralRateLimiter {
     while (this.queue.length > 0) {
       const item = this.queue.shift()!;
 
-      // Enforce minimum interval between requests
+      // Throttle exact interval spacing based on MISTRAL_MAX_RPS
       const now = Date.now();
       const elapsed = now - this.lastRequestTime;
       if (elapsed < this.minIntervalMs) {
@@ -81,7 +71,7 @@ export class MistralRateLimiter {
 
       this.lastRequestTime = Date.now();
 
-      // Fire and forget — don't block dispatch on response
+      // Dispatch request in background to unblock the internal queue loop
       item
         .fn()
         .then((result) => {
@@ -89,7 +79,7 @@ export class MistralRateLimiter {
         })
         .catch((err) => {
           if (this._isRateLimitError(err)) {
-            // Large payloads get 429 from Mistral but it's not a real rate limit
+            // Distinguish genuine rate limits from undocumented 429 size limits
             const sizeKB = (item.bodySizeBytes / 1024).toFixed(1);
             if (item.bodySizeBytes >= BODY_SIZE_LIMIT_BYTES) {
               item.reject(

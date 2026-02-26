@@ -1,19 +1,8 @@
 """
-Image Orientation Detection (Tesseract OSD)
+Legacy V2 orientation detection driver utilizing pytesseract OSD.
+Replaced by the unified `detect_orientation.py` driver but retained for reference.
 
-Detects the correct upright orientation of document images using
-Tesseract's Orientation and Script Detection (OSD) engine.
-
-Tesseract OSD analyzes text patterns to determine:
-- Page orientation (0/90/180/270 degrees)
-- Orientation confidence
-- Script (Latin, Cyrillic, etc.)
-
-Fallback: if OSD fails (e.g., too little text), uses a lightweight
-aspect-ratio + EXIF heuristic.
-
-Usage: python detect_orientation.py <image_path>
-Output: JSON to stdout
+@see architecture/details/document-types-and-processing.md - "Image Scaling Strategy"
 """
 
 import json

@@ -1,14 +1,8 @@
 /**
- * storage-upload Edge Function
+ * Internal Storage Ingress (Edge Function)
+ * Privileged endpoint allowing workers to encrypt and persist intermediate document objects into Vault.
  *
- * Encrypts and stores a document file for service-role callers (workers).
- * Auth: apikey header must match SB_SECRET_KEY.
- *
- * Body: multipart form data with:
- *   - file (required): the file to upload
- *   - document_id (required): UUID of the document
- *   - file_role (required): file role (e.g. "original", "scaled", "converted_pdf")
- *   - mime_type (optional): MIME type override (defaults to file.type)
+ * @see architecture/documents-checklist.md - "Storage & Encryption"
  */
 
 import { createServiceClient } from "../_shared/supabase.ts";

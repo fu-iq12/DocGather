@@ -1,12 +1,8 @@
 /**
- * PDF Splitter Worker
+ * Subtask processing unit that splits concatenated multi-document PDFs into distinct entities.
+ * Triggers recursive document lifecycles for each split child via the orchestrator.
  *
- * Splits multi-document PDFs into separate child documents.
- * Triggered when a PDF is identified as containing multiple distinct documents.
- *
- * Uses:
- * - pdf-lib for PDF manipulation (extracting pages)
- * - Supabase RPC to create child documents
+ * @see architecture/processing-workers.md - "Phase 4a: PDF Splitting"
  */
 
 import { Worker, Job, Queue } from "bullmq";
@@ -135,7 +131,7 @@ async function processPdfSplitterJob(
         type,
       );
 
-      // 3. Save encrypted metadata for the child document to preserve originalFilename
+      // Preserve provenance metadata tracing the child to its parent split index
       const childSourceMetadata = {
         sources: {
           "pdf-splitter": {
@@ -165,8 +161,7 @@ async function processPdfSplitterJob(
         `[PdfSplitter] Created child document ${childDocId} (${type}, pages: ${pageIndices.join(",")})`,
       );
 
-      // 5. Trigger processing for child document
-      // We must use the 'orchestrator' queue to start the flow
+      // Recursively queue the child document back through the pipeline lifecycle
       // (Variable name 'orchestratorQueue' was targeting 'tasks' in legacy code)
       await orchestratorQueue.add(
         "process-document",

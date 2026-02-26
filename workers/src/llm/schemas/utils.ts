@@ -2,8 +2,8 @@ import { z } from "zod";
 import prettier from "@prettier/sync";
 
 /**
- * Convert Zod Schema to TypeScript Interface definition string with JSDoc comments.
- * Used for System Prompts.
+ * Evaluates Zod schemas into raw TypeScript interface strings.
+ * This directly embeds our internal schemas into LLM prompts to enforce structured JSON outputs.
  */
 export function zodToTs(schema: z.ZodTypeAny, name: string) {
   return prettier.format(`interface ${name} ${printNode(schema)}`, {
@@ -18,8 +18,6 @@ function printNode(schema: z.ZodTypeAny, indent = 0): string {
   let inner: z.ZodTypeAny = schema;
 
   // Unwrap optional/nullable
-  // Using loop to handle multiple wrappings if any (though usually just one)
-  // Casting to proper types to access methods
   while (inner instanceof z.ZodOptional || inner instanceof z.ZodNullable) {
     if (inner instanceof z.ZodOptional) {
       inner = (inner as z.ZodOptional<z.ZodTypeAny>).unwrap();

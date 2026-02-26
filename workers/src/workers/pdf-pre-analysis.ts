@@ -1,13 +1,8 @@
 /**
- * PDF Pre-Analysis Worker
+ * Subtask processing unit that executes Python-based heuristics (pdfplumber)
+ * on PDF documents to establish page count, text layer quality, language, and potential multi-document bounds.
  *
- * Performs quick analysis of PDFs to determine:
- * - Page count
- * - Text layer quality (good/poor/none)
- * - Language detection
- * - Multi-document hints
- *
- * Uses Python/pdfplumber for reliable PDF parsing.
+ * @see architecture/processing-workers.md - "Phase 4: PDF Pre-Analysis"
  */
 
 import { Worker, Job } from "bullmq";
@@ -83,9 +78,8 @@ async function processPdfPreAnalysisJob(
   const pdfPath = join(tempDir, "input.pdf");
 
   try {
-    // Download PDF to temp file (decrypted via edge function)
-    // If convertedPdfPath is present, it means the document was converted from another format.
-    // In that case, we need to download the converted_pdf variant instead of the original.
+    // Source PDF bytes from the vault, prioritizing converted normalization layers
+    // if the document originated from a legacy format (like a Word or XPS file).
     const fileRole = convertedPdfPath ? "converted_pdf" : "original";
     const buffer = await downloadFile(documentId, fileRole);
     await writeFile(pdfPath, Buffer.from(buffer));

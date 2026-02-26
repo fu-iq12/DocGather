@@ -1,3 +1,9 @@
+/**
+ * Defines the structured JSON extraction rules for document normalization.
+ * Enforces fidelity to the original document over assumptions or interpolations.
+ *
+ * @see architecture/details/document-types-and-processing.md - "Stage 3: Extraction"
+ */
 import {
   getSystemPromptSchema,
   DOCUMENT_TYPES,
@@ -71,12 +77,12 @@ Return ONLY a valid JSON object matching this interface.
 `;
 
 /**
- * Get system prompt for a document type
+ * Injects the applicable document schema into the base normalization prompt,
+ * instructing the LLM to strictly map document text/images into the exact JSON fields.
  */
 export function getNormalizeSystemPrompt(
   documentType: DocumentTypeDefinition,
 ): string {
-  // We assume the schema generation logic handles sync/async correctly internally or returns string
   return NORMALIZE_SYSTEM_PROMPT_TEMPLATE.replace(
     "{{ schema }}",
     getSystemPromptSchema(documentType),

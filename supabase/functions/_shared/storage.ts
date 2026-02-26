@@ -1,6 +1,6 @@
 /**
- * Storage path utilities for Supabase Storage buckets.
- * Provides consistent path generation for documents and thumbnails.
+ * Storage Path Resolver
+ * Generates deterministic paths mapping owners, documents, and roles within object storage buckets.
  */
 
 /**

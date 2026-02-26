@@ -1,8 +1,6 @@
 /**
- * LLM Pricing Configuration
- * Prices are in USD.
- * For text/vision models: price per 1,000,000 tokens.
- * For mistral-ocr: price per 1,000 pages.
+ * Hardcoded pricing configuration to compute token/page costs for the 'trackLlmUsage' utility.
+ * Prices are per 1M tokens (text/vision) or per 1,000 pages (mistral-ocr) in USD.
  */
 
 export const PRICING = {

@@ -1,13 +1,9 @@
 /**
- * Image Scaling Worker
+ * Subtask processing unit responsible for normalizing image dimensions and formats
+ * for cost-optimized LLM Vision processing (Max 1280px, WebP format).
+ * Uses ImageMagick locally and dispatches to python pipelines for PDF to Image extractions.
  *
- * Resizes images to max 1280px for LLM Vision cost optimization.
- * Converts to WebP format for smaller file sizes.
- *
- * Uses ImageMagick for broad format support (HEIC, RAW, PSD, etc.).
- *
- * NOTE: The orchestrator is responsible for routing only image documents
- * to this worker. This worker processes whatever it receives.
+ * @see architecture/processing-workers.md - "Phase 6 & 8: Scaling & Conversion"
  */
 
 import { Worker, Job } from "bullmq";
@@ -54,8 +50,7 @@ async function scaleImageWithMagick(
   inputPath: string,
   outputPath: string,
 ): Promise<{ width: number; height: number; fileSize: number }> {
-  // Resize and convert to WebP
-  // -resize "1280x1280>" means: resize only if larger, maintain aspect ratio
+  // Degrade quality automatically to constrain resulting file size to safe margins
   let outputBuffer!: Buffer;
 
   for (let quality = WEBP_QUALITY; quality >= 5; quality -= 5) {
@@ -117,7 +112,7 @@ async function scaleImage(
     );
     const scaledDimensions = { width, height };
 
-    // Read scaled file and upload (encrypted via edge function)
+    // Read scaled file and upload (automatically encrypted in transit via Edge Function)
     const scaledBuffer = await readFile(outputFile);
     const scaledFileRole = `llm_optimized`;
     const uploadResult = await uploadFile(
@@ -242,9 +237,8 @@ async function scalePdfPage(
 }
 
 /**
- * Image scaling job processor
- *
- * Processes the image and creates a document_files entry for the scaled version.
+ * Processes incoming documents based on their MIME type, triggering the scale sequence
+ * or PDF layout extraction sequence. Records paths back into 'document_files'.
  */
 async function processImageScalingJob(
   job: Job<SubtaskInput>,

@@ -1,9 +1,8 @@
 /**
- * OVHcloud AI Endpoints Provider
+ * Baseline LLM provider implementing the OpenAI-compatible API format.
+ * Primary driver for OVHcloud AI Endpoints (e.g., Llama, Qwen) handling strictly text/vision payloads.
  *
- * Uses OpenAI-compatible API for vision models:
- * - Mistral-Small-3.2-24B-Instruct-2506
- * - Qwen2.5-VL-72B-Instruct
+ * @see architecture/processing-workers.md - "External Service Integrations"
  */
 
 import type {
@@ -71,7 +70,7 @@ export class GenericProvider implements LLMProvider {
       max_tokens: options?.maxTokens ?? 4096,
     };
 
-    // Add response_format for structured outputs if provided
+    // Enforce JSON schema responses for classification and normalization
     if (options?.responseFormat) {
       requestBody.response_format = options.responseFormat;
     }

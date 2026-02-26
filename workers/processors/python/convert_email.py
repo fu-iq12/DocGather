@@ -1,3 +1,8 @@
+"""
+Extracts routing-ready HTML presentations from binary .msg and .eml payloads.
+
+@see architecture/details/document-types-and-processing.md - "Special Format Handling"
+"""
 import sys
 import extract_msg
 import email

@@ -1,5 +1,6 @@
 -- =============================================================================
--- Phase 2: Encryption Functions- @documents-checklist.md
+-- Phase 2: Encryption Functions
+-- @see architecture/documents-checklist.md
 -- =============================================================================
 -- Purpose: Enable pgcrypto extension and create functions for envelope encryption.
 --          Master keys are stored in Vault; DEKs and metadata use pgcrypto.
@@ -212,3 +213,4 @@ comment on function public.get_current_master_key_version is
 -- -----------------------------------------------------------------------------
 revoke all on vault.decrypted_secrets from anon, authenticated;
 revoke all on vault.secrets from anon, authenticated;
+

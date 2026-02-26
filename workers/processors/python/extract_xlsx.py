@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
+"""
+Direct spreadsheet extraction driver utilizing pandas.
+Dumps distinct worksheets into dense, token-optimized Markdown tables for LLM normalization.
+
+@see architecture/details/document-types-and-processing.md - "Special Format Handling"
+"""
 import sys
 import pandas as pd
 
 def extract_xlsx(input_path: str):
-    """
-    Reads all sheets from an Excel file (xlsx, xlsb) and prints them as Markdown tables.
-    """
     try:
         # read_excel with sheet_name=None reads all sheets into a dict of DataFrames
         engine = 'pyxlsb' if input_path.lower().endswith('.xlsb') else 'openpyxl'

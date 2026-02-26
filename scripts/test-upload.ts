@@ -1,3 +1,8 @@
+/**
+ * Single File Ingestion Utility
+ * Authenticates and streams a single local file into the Edge Function `upload-document` endpoint
+ * to manually trigger the async indexing pipeline.
+ */
 import fs from "node:fs";
 import path from "node:path";
 import { createClient, FunctionsHttpError } from "@supabase/supabase-js";

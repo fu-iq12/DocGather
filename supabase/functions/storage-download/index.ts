@@ -1,12 +1,8 @@
 /**
- * storage-download Edge Function
+ * Internal Storage Egress (Edge Function)
+ * Privileged endpoint allowing workers to decrypt and pull document payloads from Vault storage.
  *
- * Decrypts and serves a document file for service-role callers (workers).
- * Auth: apikey header must match SB_SECRET_KEY.
- *
- * Query params:
- *   - document_id (required): UUID of the document
- *   - file_role (optional): file role to download (default: "original")
+ * @see architecture/documents-checklist.md - "Data Egress & Access"
  */
 
 import { createServiceClient } from "../_shared/supabase.ts";

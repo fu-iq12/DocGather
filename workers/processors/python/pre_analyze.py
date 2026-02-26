@@ -1,14 +1,9 @@
 """
-PDF Pre-Analysis Script
+PDF topology pre-analyzer driving orchestrator heuristics.
+Inspects page boundaries, text density, and image distributions to route documents
+for structural splitting, native extraction, or vision OCR pipelines.
 
-Performs quick analysis of PDFs to determine:
-- Page count
-- Text layer quality (good/poor/none)
-- Language detection (via langdetect)
-- Multi-document detection hints
-
-Usage: python pre_analyze.py <pdf_path>
-Output: JSON to stdout
+@see architecture/details/document-types-and-processing.md - "Simplified Flow"
 """
 
 import sys

@@ -1,5 +1,6 @@
 -- =============================================================================
--- Phase 4.4: Worker Write-back RPC Functions- @documents-checklist.md
+-- Phase 4.4: Worker Write-back RPC Functions
+-- @see architecture/documents-checklist.md
 -- =============================================================================
 -- Functions for Fly.io workers to update documents after processing.
 -- Relies on Service Role security (RLS/Grants) for protection.
@@ -348,3 +349,4 @@ $$;
 
 REVOKE ALL ON FUNCTION worker_increment_llm_billing(UUID, BIGINT, BIGINT, INT, NUMERIC(10, 6)) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION worker_increment_llm_billing(UUID, BIGINT, BIGINT, INT, NUMERIC(10, 6)) TO service_role;
+

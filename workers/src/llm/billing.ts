@@ -1,5 +1,8 @@
 /**
- * Utility to track and persist LLM billing
+ * Monitors and records LLM billing usage to Supabase.
+ * Extracted text and images are aggregated to track prompt/completion tokens and processing costs.
+ *
+ * @see architecture/processing-workers.md - "Encrypted Storage Access"
  */
 
 import { supabase } from "../supabase.js";

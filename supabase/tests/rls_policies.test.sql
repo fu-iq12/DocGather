@@ -1,14 +1,9 @@
 -- =============================================================================
--- RLS Policy Tests- @documents-checklist.md
--- =============================================================================
--- Purpose: Verify Row Level Security policies work correctly.
+-- RLS Policy Validation Suite
+-- Verifies tenant isolation and security boundaries for document artifacts
+-- @see architecture/documents-checklist.md - "Database Row Level Security"
 -- Run with: npm run test:rls
--- Note: Uses pure SQL without DO blocks for role-switching compatibility.
 -- =============================================================================
-
-\echo '============================================='
-\echo 'RLS Policy Tests for Documents Architecture'
-\echo '============================================='
 
 -- Run in a transaction so we can rollback all test data
 BEGIN;

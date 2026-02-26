@@ -1,3 +1,7 @@
+/**
+ * Validation Suite: image-prefilter
+ * Tests the image-prefilter module for expected architectural behaviors and edge cases.
+ */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { processImagePrefilterJob } from "./image-prefilter.js";
 
@@ -65,3 +69,4 @@ describe("Image Prefilter Worker", () => {
     expect(result.hasText).toBe(false);
   });
 });
+

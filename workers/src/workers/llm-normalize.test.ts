@@ -1,3 +1,7 @@
+/**
+ * Validation Suite: llm-normalize
+ * Tests the llm-normalize module for expected architectural behaviors and edge cases.
+ */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { processLlmNormalizeJob } from "./llm-normalize.js";
@@ -112,3 +116,4 @@ describe("processLlmNormalizeJob", () => {
     expect(mockChat).toHaveBeenCalledTimes(3);
   });
 });
+

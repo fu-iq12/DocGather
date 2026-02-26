@@ -1,6 +1,8 @@
 /**
- * get-job-status Edge Function
- * Returns the processing status of a document/job.
+ * Processing Telemetry (Edge Function)
+ * Exposes orchestrator state machine progress and historical audit trails for a given document.
+ *
+ * @see architecture/processing-workers.md - "Monitoring & Progress"
  */
 
 import { createServiceClient, getUserFromAuth } from "../_shared/supabase.ts";

@@ -1,3 +1,10 @@
+/**
+ * Subtask processing unit responsible for standardizing incoming anomalous file types
+ * (emails, legacy spreadsheets, XPS) into standard PDF formats or raw extracted text.
+ * Falls back to python extraction pipelines for spreadsheets and emails.
+ *
+ * @see architecture/processing-workers.md - "Phase 3: Format Conversion"
+ */
 import { Job, Worker } from "bullmq";
 import { type SubtaskInput, type FormatConversionResult } from "../types.js";
 import { downloadFile, uploadFile } from "../supabase.js";
@@ -19,7 +26,7 @@ const execFileAsync = promisify(execFile);
 const processor = async (job: Job<SubtaskInput, FormatConversionResult>) => {
   const { documentId, originalPath, ownerId } = job.data;
 
-  // Create a temporary directory for processing this document
+  // Allocate ephemeral processing directory
   const tempDir = await fs.mkdtemp(
     path.join(os.tmpdir(), `convert-${documentId}-`),
   );
@@ -156,7 +163,6 @@ const processor = async (job: Job<SubtaskInput, FormatConversionResult>) => {
     console.log(
       `[FormatConversion] Cleaning up temp files for ${documentId}...`,
     );
-    // Clean up temporary files
     await fs.rm(tempDir, { recursive: true, force: true }).catch((err) => {
       console.error(
         `[FormatConversion] Failed to clean up temp dir ${tempDir}:`,

@@ -1,5 +1,6 @@
 -- =============================================================================
--- Phase 6: Simple Priority Tiers for Job Queue - @documents-checklist.md
+-- Phase 6: Simple Priority Tiers for Job Queue 
+-- @see architecture/documents-checklist.md
 -- =============================================================================
 -- Returns BullMQ priority value based on job source.
 -- Lower numbers = higher priority in BullMQ.
@@ -31,3 +32,4 @@ GRANT EXECUTE ON FUNCTION get_job_priority(TEXT) TO service_role;
 
 COMMENT ON FUNCTION get_job_priority IS 
   'Returns BullMQ priority (1=highest) based on job source: user_upload, cloud_sync, retry';
+

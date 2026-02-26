@@ -1,5 +1,4 @@
 import { vi } from "vitest";
-import type { Job, FlowProducer } from "bullmq";
 
 /**
  * Create a mock BullMQ Job for testing

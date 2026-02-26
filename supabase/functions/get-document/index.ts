@@ -1,6 +1,8 @@
 /**
- * get-document Edge Function
- * Securely retrieves and decrypts documents with access logging.
+ * Secure Document Retrieval (Edge Function)
+ * Streams decrypted payloads from Vault-backed storage, tracking access telemetry.
+ *
+ * @see architecture/documents-checklist.md - "Data Egress & Access"
  */
 
 import {

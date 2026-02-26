@@ -1,14 +1,8 @@
 /**
- * LLM Classify Worker
+ * Subtask processing unit executing the primary text-based classification heuristic.
+ * Employs a text-optimized LLM (e.g., Qwen) against extracted document payloads to determine structure taxonomy.
  *
- * Classifies document based on extracted text.
- * Uses Text-optimized LLM (e.g. Qwen2.5-32B).
- *
- * Input:
- * - extractedText (convenience shorthand)
- *
- * Output:
- * - ClassificationResult (documentType, confidence, hints)
+ * @see architecture/processing-workers.md - "Phase 11: LLM Classification"
  */
 
 import { Worker, Job } from "bullmq";
@@ -63,7 +57,7 @@ async function processLlmClassifyJob(
     temperature: 0,
   };
 
-  // Parse + validate with retry (up to 3 attempts)
+  // Parse and type-validate against Zod schemas, with retry backoffs
   const MAX_PARSE_ATTEMPTS = 3;
   const promptText = `Original Filename: ${job.data.originalFilename || "unknown"}\n\nDocument Text:\n${extractedText}`;
 

@@ -1,12 +1,8 @@
 """
-PDF Text Extraction Script
+Native PDF text extraction driver utilizing pdfplumber.
+Yields layout-preserved formatted text for digital-native documents, bypassing OCR fallbacks.
 
-Extracts full text from PDFs using pdfplumber.
-Designed for documents with a good text layer (digital-native PDFs).
-Preserves layout string representation where possible.
-
-Usage: python extract_text.py <pdf_path>
-Output: JSON to stdout
+@see architecture/details/document-types-and-processing.md - "Processing Paths by MIME Type"
 """
 
 import sys

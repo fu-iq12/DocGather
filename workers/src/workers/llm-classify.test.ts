@@ -1,3 +1,7 @@
+/**
+ * Validation Suite: llm-classify
+ * Tests the llm-classify module for expected architectural behaviors and edge cases.
+ */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { processLlmClassifyJob } from "./llm-classify.js";
 import type { Job } from "bullmq";
@@ -111,3 +115,4 @@ describe("processLlmClassifyJob", () => {
     await expect(processLlmClassifyJob(job)).rejects.toThrow("API Error");
   });
 });
+

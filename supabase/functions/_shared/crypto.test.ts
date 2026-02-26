@@ -1,6 +1,6 @@
 /**
- * Unit tests for crypto utilities.
- * Run with: deno test supabase/functions/_shared/crypto.test.ts
+ * Validation Suite: crypto
+ * Tests the crypto module for expected architectural behaviors and edge cases.
  */
 
 import {
@@ -145,3 +145,4 @@ Deno.test("decryptFile - fails with wrong key", async () => {
     );
   }
 });
+

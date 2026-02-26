@@ -1,5 +1,6 @@
 /**
- * Tests for pdf-splitter worker
+ * Validation Suite: pdf-splitter
+ * Tests the pdf-splitter module for expected architectural behaviors and edge cases.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -282,3 +283,4 @@ describe("pdf-splitter worker", () => {
     });
   });
 });
+

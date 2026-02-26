@@ -1,7 +1,6 @@
 /**
- * Tests for types.ts
- *
- * Validates type definitions and constants.
+ * Validation Suite: types
+ * Tests the types module for expected architectural behaviors and edge cases.
  */
 
 import { describe, it, expect } from "vitest";
@@ -190,3 +189,4 @@ describe("types", () => {
     });
   });
 });
+

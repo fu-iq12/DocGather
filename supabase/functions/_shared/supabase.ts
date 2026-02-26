@@ -1,6 +1,6 @@
 /**
- * Supabase client factories for Edge Functions.
- * Provides both service-role and user-scoped clients.
+ * Supabase Client Factories
+ * Provisions either service-role or JWT-scoped clients for privileged or RLS-bound interactions from Edge VMs.
  */
 
 import {

@@ -1,15 +1,9 @@
 /**
- * File Cache Module
+ * Ephemeral local filesystem cache for decrypted payloads.
+ * Mitigates redundant remote egress and expensive decryption cycles across the worker lifecycle.
+ * Managed via explicit orchestrator cleanups and periodic background sweeps.
  *
- * Provides a temporary, local filesystem cache for downloaded files to avoid
- * redundant network requests and decryption overhead during document processing.
- *
- * Cache strategy:
- * - Files are stored in the OS temp directory under a `docgather-cache` subdirectory.
- * - An in-memory Map tracks valid cache entries.
- * - Cache is ephemeral (cleared on restart) and local to the worker instance.
- * - Explicit cleanup is provided via `clearCacheForDocument` (called by orchestrator).
- * - Periodic cleanup is provided via `clearStaleCacheEntries` (called by main loop).
+ * @see architecture/documents-checklist.md - "Storage & Lifecycle"
  */
 
 import { mkdir, readFile, rm, stat, writeFile } from "fs/promises";

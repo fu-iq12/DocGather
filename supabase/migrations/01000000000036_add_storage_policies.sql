@@ -1,5 +1,6 @@
 -- =============================================================================
--- Phase 3: Storage Bucket Policies- @documents-checklist.md
+-- Phase 3: Storage Bucket Policies
+-- @see architecture/documents-checklist.md
 -- =============================================================================
 -- Purpose: Secure access to documents and thumbnails storage buckets.
 -- Design:
@@ -37,5 +38,6 @@ create policy "Service role can delete documents bucket"
   for delete
   to service_role
   using (bucket_id = 'documents');
+
 
 

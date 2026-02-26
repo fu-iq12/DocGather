@@ -1,5 +1,6 @@
 /**
- * Tests for image-scaling worker (ImageMagick version)
+ * Validation Suite: image-scaling
+ * Tests the image-scaling module for expected architectural behaviors and edge cases.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -221,3 +222,4 @@ describe("image-scaling worker (ImageMagick)", () => {
     });
   });
 });
+

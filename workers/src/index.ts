@@ -1,8 +1,9 @@
 /**
- * Worker Entry Point
+ * Primary worker process entrypoint.
+ * Boots Express health/wake webhooks and initializes the BullMQ orchestrator
+ * and downstream subtask processing workers.
  *
- * HTTP server for health checks and waker endpoint.
- * Starts all worker processes.
+ * @see architecture/processing-workers.md - "High-Level Architecture"
  */
 
 import express, { Request, Response } from "express";
@@ -82,10 +83,9 @@ interface QueueJobRequest {
 }
 
 /**
- * Queue a document for processing
- *
- * Called by the queue-job Edge Function to add documents to the queue.
- * Requires mimeType and originalFileId from DB.
+ * Ingress webhook for queueing documents.
+ * Invoked synchronously by remote Edge Functions to transfer document lifecycle
+ * control to the asynchronous worker pool.
  */
 app.post("/queue", async (req: Request, res: Response) => {
   try {

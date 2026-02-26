@@ -1,3 +1,9 @@
+/**
+ * Subtask processing unit that extracts raw text streams synchronously.
+ * Caps file payloads to prevent token explosions in subsequent downstream NLP steps.
+ *
+ * @see architecture/processing-workers.md - "Format Handling"
+ */
 import { Job, Worker } from "bullmq";
 import { type SubtaskInput, type TxtExtractResult } from "../types.js";
 import { downloadFile } from "../supabase.js";

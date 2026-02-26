@@ -1,5 +1,6 @@
 /**
- * Tests for pdf-simple-extract worker
+ * Validation Suite: pdf-simple-extract
+ * Tests the pdf-simple-extract module for expected architectural behaviors and edge cases.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -150,3 +151,4 @@ describe("pdf-simple-extract worker", () => {
     });
   });
 });
+

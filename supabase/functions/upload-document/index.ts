@@ -1,12 +1,8 @@
 /**
- * upload-document Edge Function
- * Handles secure document upload with encryption, deduplication, and source tracking.
+ * Document Ingress Router (Edge Function)
+ * Secures uploads, detects accurate MIME types, provisions vault keys, and initializes the processing state machine.
  *
- * Key features:
- * - Magic bytes detection for actual MIME type (not just extension)
- * - Source tracking in encrypted_metadata (filepath, dates)
- * - Deduplication with source accumulation
- * - document_type is NULL initially (determined during processing)
+ * @see architecture/documents-checklist.md - "Storage & Encryption"
  */
 
 import {

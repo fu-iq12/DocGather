@@ -1,3 +1,7 @@
+/**
+ * Validation Suite: file-cache
+ * Tests the file-cache module for expected architectural behaviors and edge cases.
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Import the module under test AFTER mocking
@@ -105,3 +109,4 @@ describe("File Cache Module", () => {
     expect(emptyStats.totalBytes).toBe(0);
   });
 });
+

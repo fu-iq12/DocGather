@@ -1,3 +1,8 @@
+/**
+ * Directory Ingestion Utility
+ * Bulk-authenticates and streams a local directory into the Edge Function `upload-document` endpoint.
+ * Useful for seeding large test sets into the pipeline.
+ */
 import fs from "node:fs";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";

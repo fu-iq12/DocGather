@@ -18,12 +18,12 @@ services:
     volumes:
       - ./src:/app/src
       - ./package.json:/app/package.json
-      - ./cache:/app/cache # LLM response cache (optional)
+      - ./cache:/app/cache # Native file cache mount for LLM responses
     environment:
       - REDIS_URL=redis://redis:6379
       - SUPABASE_URL=${SUPABASE_URL}
       - SB_SECRET_KEY=${SB_SECRET_KEY}
-      # LLM Configuration
+      # Unified LLM Provider Configuration (@see architecture/processing-workers.md)
       - LLM_OCR_PROVIDER=${LLM_OCR_PROVIDER:-ovhcloud}
       - LLM_OCR_MODEL=${LLM_OCR_MODEL:-}
       - LLM_OCR_ENDPOINT=${LLM_OCR_ENDPOINT:-}
