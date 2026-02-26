@@ -14,6 +14,8 @@ import {
   logProcessStep,
 } from "./supabase.js";
 import { clearCacheForDocument } from "./file-cache.js";
+import { LLMClient } from "./llm/index.js";
+import { Queue } from "bullmq";
 import type { SubtaskInput, ProcessingResults, JobSource } from "./types.js";
 
 import { addJobToFlow } from "./flow-producer-wrapper.js";
@@ -158,6 +160,26 @@ export async function queueDocumentForProcessing(
   });
 
   console.log(`[Orchestrator] Queued ${mimeType} document ${documentId}`);
+
+  // Schedule a delayed Mistral file cleanup scan
+  try {
+    const cleanupQueue = new Queue("mistral-cleanup", { connection });
+    await cleanupQueue.add(
+      "cleanup",
+      {},
+      {
+        jobId: "cleanup-scheduled",
+        delay: 30 * 60 * 1000, // 30 minutes
+        removeOnComplete: true,
+      },
+    );
+  } catch (err) {
+    console.error(
+      `[Orchestrator] Failed to schedule mistral-cleanup job:`,
+      err,
+    );
+  }
+
   return flow.job.id!;
 }
 
@@ -619,6 +641,22 @@ export const orchestratorProcessor = async (job: Job, token?: string) => {
     // Clean up cached files for this document
     await clearCacheForDocument(input.documentId);
 
+    // Clean up Mistral file if one was uploaded
+    if (input.llmFileId) {
+      try {
+        const client = new LLMClient();
+        await client.delete(input.llmFileId);
+        console.log(
+          `[Orchestrator] Deleted Mistral file ${input.llmFileId} for document ${input.documentId}`,
+        );
+      } catch (e) {
+        console.warn(
+          `[Orchestrator] Failed to delete Mistral file ${input.llmFileId}:`,
+          e,
+        );
+      }
+    }
+
     const duration = Date.now() - (input as any).startedAt || 0;
     console.log(
       `[Orchestrator] Document ${input.documentId} workflow finished in ${duration}ms`,
@@ -643,6 +681,10 @@ export const orchestratorProcessor = async (job: Job, token?: string) => {
     );
     // Best effort cleanup on error
     await clearCacheForDocument(input.documentId).catch(() => {});
+    if (input.llmFileId) {
+      const client = new LLMClient();
+      await client.delete(input.llmFileId).catch(() => {});
+    }
     throw error;
   }
 };
@@ -706,6 +748,10 @@ orchestratorWorker.on("failed", async (job, error) => {
         process.env.FLY_MACHINE_VERSION || "local",
       );
       await clearCacheForDocument(job.data.documentId).catch(() => {});
+      if (job.data.llmFileId) {
+        const client = new LLMClient();
+        await client.delete(job.data.llmFileId).catch(() => {});
+      }
     } catch (e) {
       console.error(
         `[Orchestrator] Failed to update document status for job ${job.id}:`,

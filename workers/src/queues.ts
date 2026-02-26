@@ -52,6 +52,7 @@ const TASK_QUEUE_NAMES = [
   "llm-classify",
   "llm-normalize",
   "llm-ocr",
+  "mistral-cleanup",
   "pdf-pre-analysis",
   "pdf-simple-extract",
   "txt-simple-extract",

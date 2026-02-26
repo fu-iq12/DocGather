@@ -148,8 +148,8 @@ describe("MistralRateLimiter", () => {
         );
       };
 
-      // Pass body size >= 195KB
-      const largeBodySize = 200 * 1024;
+      // Pass body size >= 128KB
+      const largeBodySize = "*".repeat(128 * 1024);
       await expect(limiter.execute(fn, largeBodySize)).rejects.toThrow(
         "NOT a rate limit",
       );
@@ -170,11 +170,9 @@ describe("MistralRateLimiter", () => {
         return "ok";
       };
 
-      const smallBodySize = 10 * 1024;
-      const result = await limiter.execute(fn, smallBodySize);
+      const result = await limiter.execute(fn, "smallBodySize");
       expect(result).toBe("ok");
       expect(callCount).toBe(2); // retried once
     });
   });
 });
-

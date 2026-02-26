@@ -39,6 +39,8 @@ export interface SubtaskInput {
   originalFilename?: string;
   /** Method used to extract text: 'vision' (OCR) or 'pdf' (native extract) */
   extractionMethod?: "vision" | "pdf";
+  /** Mistral File API file ID (uploaded once, reused across OCR/vision calls) */
+  llmFileId?: string;
 }
 
 // ============================================================================

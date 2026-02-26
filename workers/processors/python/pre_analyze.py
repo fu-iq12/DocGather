@@ -46,12 +46,10 @@ def analyze_pdf(pdf_path: str) -> dict:
         with pdfplumber.open(pdf_path) as pdf:
             result["pageCount"] = len(pdf.pages)
 
-            # Extract text from first 3 pages for analysis
-            sample_pages = pdf.pages[:3]
             all_text = ""
             chars_per_page = []
 
-            for page in sample_pages:
+            for i, page in enumerate(pdf.pages):
                 # Get all images on the page
                 images = page.images
                 
@@ -171,7 +169,10 @@ def analyze_pdf(pdf_path: str) -> dict:
             current_text_doc_pages = []
             current_text_doc_covers = []
 
-            # for i, page in enumerate(pdf.pages):
+            # New variables for full page scans
+            current_full_page_pages = []
+            current_full_page_covers = []
+
             for i, page in enumerate(pdf.pages):
                 page_num = i + 1 # 1-based index
                 
@@ -214,6 +215,7 @@ def analyze_pdf(pdf_path: str) -> dict:
                         x_intervals.append((x0, x1))
                         
                 image_cover_perc = round(min(100.0, (total_img_area / page_area) * 100), 2)
+                # print(f"Page {page_num}: text_length={p_len}, image_cover={image_cover_perc}%")
                 
                 # Drop pages with poor text quality and poor image cover
                 if p_len < 20 and image_cover_perc < 25.0:
@@ -223,9 +225,23 @@ def analyze_pdf(pdf_path: str) -> dict:
                 if p_len > 2000 or (p_len > 200 and image_cover_perc < 25.0):
                     current_text_doc_pages.append(page_num)
                     current_text_doc_covers.append(image_cover_perc)
+                    
+                    # Flush accumulated full pages if any
+                    if current_full_page_pages:
+                        avg_cover = round(sum(current_full_page_covers) / len(current_full_page_covers), 2)
+                        documents.append({
+                            "pages": current_full_page_pages,
+                            "type": "full_page",
+                            "image_cover": avg_cover
+                        })
+                        current_full_page_pages = []
+                        current_full_page_covers = []
                     continue
-                else:
-                    # If we have accumulated text pages, flush them
+                elif image_cover_perc == 100.0:
+                    current_full_page_pages.append(page_num)
+                    current_full_page_covers.append(image_cover_perc)
+                    
+                    # Flush accumulated text pages if any
                     if current_text_doc_pages:
                         avg_cover = round(sum(current_text_doc_covers) / len(current_text_doc_covers), 2)
                         documents.append({
@@ -235,6 +251,29 @@ def analyze_pdf(pdf_path: str) -> dict:
                         })
                         current_text_doc_pages = []
                         current_text_doc_covers = []
+                    continue
+                else:
+                    # Flush any accumulated text pages
+                    if current_text_doc_pages:
+                        avg_cover = round(sum(current_text_doc_covers) / len(current_text_doc_covers), 2)
+                        documents.append({
+                            "pages": current_text_doc_pages,
+                            "type": "document",
+                            "image_cover": avg_cover
+                        })
+                        current_text_doc_pages = []
+                        current_text_doc_covers = []
+                        
+                    # Flush any accumulated full pages
+                    if current_full_page_pages:
+                        avg_cover = round(sum(current_full_page_covers) / len(current_full_page_covers), 2)
+                        documents.append({
+                            "pages": current_full_page_pages,
+                            "type": "full_page",
+                            "image_cover": avg_cover
+                        })
+                        current_full_page_pages = []
+                        current_full_page_covers = []
                     
                     # Process this non-text-heavy page
                     if relevant_images_count < 2:
@@ -257,6 +296,15 @@ def analyze_pdf(pdf_path: str) -> dict:
                 documents.append({
                     "pages": current_text_doc_pages,
                     "type": "document",
+                    "image_cover": avg_cover
+                })
+
+            # Flush leftover full pages
+            if current_full_page_pages:
+                avg_cover = round(sum(current_full_page_covers) / len(current_full_page_covers), 2)
+                documents.append({
+                    "pages": current_full_page_pages,
+                    "type": "full_page",
                     "image_cover": avg_cover
                 })
 

@@ -27,10 +27,7 @@ def convert_pdf_to_image(pdf_path, output_dir):
         output_filename = "page_1.webp"
         output_path = Path(output_dir) / output_filename
         
-        for quality in range(85, 0, -5):
-            img.save(output_path, "WEBP", quality=quality, method=6) # 6 is the best compression method
-            if output_path.stat().st_size < 120 * 1024:
-                break
+        img.save(output_path, "WEBP", quality=85, method=6) # 6 is the best compression method
         
         return {
             "scaledPath": str(output_path),

@@ -234,6 +234,35 @@ export class LLMClient {
 
     return response;
   }
+
+  /**
+   * Uploads a file to the provider (if supported) for subsequent OCR/Vision calls.
+   */
+  async upload(
+    documentId: string,
+    imageBuffer: ArrayBuffer,
+    imageMimeType: string,
+    target: "ocr" | "vision",
+  ): Promise<string | undefined> {
+    const provider = target === "ocr" ? this.ocrProvider : this.visionProvider;
+    if (provider.upload) {
+      return provider.upload(documentId, imageBuffer, imageMimeType, "ocr");
+    }
+    return undefined;
+  }
+
+  /**
+   * Deletes a previously uploaded file from the provider.
+   */
+  async delete(fileId: string): Promise<void> {
+    // Only need to delete once if both use the same provider/account,
+    // but try the first one that supports it.
+    if (this.ocrProvider.delete) {
+      await this.ocrProvider.delete(fileId);
+    } else if (this.visionProvider.delete) {
+      await this.visionProvider.delete(fileId);
+    }
+  }
 }
 
 // Re-export types

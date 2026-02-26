@@ -21,8 +21,10 @@ import { pdfSimpleExtractWorker } from "./workers/pdf-simple-extract.js";
 import { pdfSplitterWorker } from "./workers/pdf-splitter.js";
 import { txtSimpleExtractWorker } from "./workers/txt-simple-extract.js";
 import { formatConversionWorker } from "./workers/format-conversion.js";
-import { closeQueues } from "./queues.js";
+import { mistralCleanupWorker } from "./workers/mistral-cleanup.js";
+import { closeQueues, connection } from "./queues.js";
 import { clearStaleCacheEntries } from "./file-cache.js";
+import { Queue } from "bullmq";
 import type { JobSource } from "./types.js";
 import { getDefaultConfig } from "./llm/types.js";
 
@@ -178,6 +180,32 @@ const server = app.listen(PORT, () => {
     },
     60 * 60 * 1000,
   );
+
+  // Clean up any stale mistral files left over from previous runs
+  try {
+    new Queue("mistral-cleanup", { connection })
+      .add(
+        "cleanup",
+        {},
+        {
+          jobId: "cleanup-scheduled",
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      )
+      .then(() => console.log("[MistralCleanup] Scheduled cleanup at startup"))
+      .catch((err) =>
+        console.error(
+          "[MistralCleanup] Failed to schedule cleanup at startup",
+          err,
+        ),
+      );
+  } catch (err) {
+    console.error(
+      "[MistralCleanup] Failed to instantiate cleanup queue at startup",
+      err,
+    );
+  }
 });
 
 // ============================================================================
@@ -203,6 +231,7 @@ async function shutdown(signal: string): Promise<void> {
     txtSimpleExtractWorker.close(),
     pdfSplitterWorker.close(),
     formatConversionWorker.close(),
+    mistralCleanupWorker.close(),
   ]);
 
   // Close queues and Redis connection

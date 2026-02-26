@@ -9,10 +9,10 @@ interface QueueItem<T> {
   resolve: (value: T) => void;
   reject: (reason: unknown) => void;
   retries: number;
-  bodySizeBytes: number;
+  body: string;
 }
 
-const BODY_SIZE_LIMIT_BYTES = 195 * 1024; // 195KB
+const BODY_SIZE_LIMIT_BYTES = 128 * 1024; // 128KB
 
 export class MistralRateLimiter {
   private static instance: MistralRateLimiter | null = null;
@@ -42,14 +42,14 @@ export class MistralRateLimiter {
   /**
    * Queues an asynchronous request, blocking execution until the rate limiter permits dispatch.
    */
-  execute<T>(fn: () => Promise<T>, bodySizeBytes?: number): Promise<T> {
+  execute<T>(fn: () => Promise<T>, body?: string): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       this.queue.push({
         fn,
         resolve,
         reject,
         retries: 0,
-        bodySizeBytes: bodySizeBytes || 0,
+        body: body || "",
       });
       this._processQueue();
     });
@@ -77,22 +77,35 @@ export class MistralRateLimiter {
         .then((result) => {
           item.resolve(result);
         })
-        .catch((err) => {
+        .catch(async (err) => {
           if (this._isRateLimitError(err)) {
             // Distinguish genuine rate limits from undocumented 429 size limits
-            const sizeKB = (item.bodySizeBytes / 1024).toFixed(1);
-            if (item.bodySizeBytes >= BODY_SIZE_LIMIT_BYTES) {
+            const sizeKB = (item.body.length / 1024).toFixed(1);
+            if (item.body.length >= BODY_SIZE_LIMIT_BYTES) {
               item.reject(
                 new Error(
                   `Mistral rejected payload (${sizeKB}KB >= 195KB limit) with 429 — NOT a rate limit, skipping retry`,
                 ),
               );
+            } else if (item.retries >= 20) {
+              item.reject(
+                new Error(
+                  `Too many rate limit retries (${item.retries}) - giving up`,
+                ),
+              );
+              if (process.env.FILE_CACHE_KEEP_ON_DISK === "true") {
+                await import("fs/promises").then(async (fs) => {
+                  const dir = `/app/cache/mistral-too-many-retries`;
+                  await fs.mkdir(dir, { recursive: true });
+                  await fs.writeFile(`${dir}/${Date.now()}.json`, item.body);
+                });
+              }
             } else {
               item.retries++;
               console.warn(
                 `[MistralRateLimiter] Rate limited, re-enqueuing (retry #${item.retries}) - ${sizeKB}KB`,
               );
-              this.queue.unshift(item);
+              this.queue.push(item);
               this._processQueue();
             }
           } else {

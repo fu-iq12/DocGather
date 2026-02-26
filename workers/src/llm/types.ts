@@ -20,6 +20,8 @@ export interface ChatRequestOptions {
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  /** Direct file reference from Mistral Files API */
+  fileId?: string;
   /** Skip cache lookup/write for this request */
   skipCache?: boolean;
   /** Cache folder prefix (e.g. "vision", "classify") */
@@ -62,6 +64,15 @@ export interface LLMProvider {
     userPrompt: string,
     options?: ChatRequestOptions,
   ): Promise<ChatResponse>;
+
+  upload?(
+    documentId: string,
+    imageBuffer: ArrayBuffer,
+    imageMimeType: string,
+    purpose?: "ocr",
+  ): Promise<string | undefined>;
+
+  delete?(fileId: string): Promise<void>;
 }
 
 export interface ModelConfig {

@@ -50,24 +50,16 @@ async function scaleImageWithMagick(
   inputPath: string,
   outputPath: string,
 ): Promise<{ width: number; height: number; fileSize: number }> {
-  // Degrade quality automatically to constrain resulting file size to safe margins
-  let outputBuffer!: Buffer;
+  await execFileAsync("magick", [
+    inputPath,
+    "-resize",
+    `${MAX_DIMENSION}x${MAX_DIMENSION}>`,
+    "-quality",
+    String(WEBP_QUALITY),
+    outputPath,
+  ]);
 
-  for (let quality = WEBP_QUALITY; quality >= 5; quality -= 5) {
-    await execFileAsync("magick", [
-      inputPath,
-      "-resize",
-      `${MAX_DIMENSION}x${MAX_DIMENSION}>`,
-      "-quality",
-      String(quality),
-      outputPath,
-    ]);
-
-    outputBuffer = await readFile(outputPath);
-    if (outputBuffer.length < 120 * 1024) {
-      break;
-    }
-  }
+  const outputBuffer = await readFile(outputPath);
 
   // Get output dimensions and size
   const dimensions = await getImageDimensions(outputPath);

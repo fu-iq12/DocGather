@@ -88,7 +88,35 @@ async function processLlmOcrJob(job: Job<SubtaskInput>): Promise<LlmOcrResult> {
   const visionOptions = {
     responseFormat: { type: "json_object" as const },
     cachePrefix: job.queueName,
+    fileId: job.data.llmFileId,
   };
+
+  let fileIdStr = visionOptions.fileId
+    ? `(uses fileId ${visionOptions.fileId})`
+    : "";
+
+  // Attempt to upload file for Mistral-backed providers to avoid base64 limits
+  if (!visionOptions.fileId) {
+    try {
+      const uploadedFileId = await client.upload(
+        documentId,
+        buffer,
+        "image/webp",
+        "ocr",
+      );
+      if (uploadedFileId) {
+        visionOptions.fileId = uploadedFileId;
+        fileIdStr = `(uploaded to fileId ${uploadedFileId})`;
+        // Save back to job so later retries or downstream steps can reuse it
+        await job.updateData({ ...job.data, llmFileId: uploadedFileId });
+      }
+    } catch (uploadError) {
+      console.warn(
+        `[LlmOcr] Failed to upload file to Mistral for ${documentId}, falling back to base64:`,
+        uploadError,
+      );
+    }
+  }
 
   let response = await client.ocr(
     OCR_SYSTEM_PROMPT,
