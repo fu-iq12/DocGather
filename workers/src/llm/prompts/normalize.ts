@@ -38,7 +38,8 @@ You must preserve meaning, not "fix" it.
 FIELD-SPECIFIC RULES:
 
 NAMES:
-- Combine ALL parts of a person's name (first, last, middle, etc.) into ONE single name object. Do NOT create separate objects for given and family names of the same person.
+- Combine ALL parts of a person's name (first, last, middle, etc.) into ONE single name object, even it they are split across multiple lines.
+  Do NOT create separate objects for given and family names of the same person.
 - Use type "legal" for primary printed name.
 - Only use birthFamily when explicitly stated on the document.
 - Preserve original order and casing in "full".

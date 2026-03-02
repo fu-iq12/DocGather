@@ -9,6 +9,7 @@ import json
 import argparse
 from pathlib import Path
 from pdf2image import convert_from_path
+from PIL import ImageOps
 
 def convert_pdf_to_image(pdf_path, output_dir):
     try:
@@ -27,6 +28,9 @@ def convert_pdf_to_image(pdf_path, output_dir):
         output_filename = "page_1.webp"
         output_path = Path(output_dir) / output_filename
         
+        # Contrast strech to enhance text visibility
+        img = ImageOps.autocontrast(img, cutoff=0.1) # 0.1% low + 0.1% high
+
         img.save(output_path, "WEBP", quality=85, method=6) # 6 is the best compression method
         
         return {

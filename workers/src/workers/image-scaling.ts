@@ -54,6 +54,10 @@ async function scaleImageWithMagick(
     inputPath,
     "-resize",
     `${MAX_DIMENSION}x${MAX_DIMENSION}>`,
+    "-contrast-stretch",
+    "0.1",
+    "-colorspace",
+    "Gray",
     "-quality",
     String(WEBP_QUALITY),
     outputPath,
@@ -159,7 +163,7 @@ async function runPdfToImage(
     "--output_dir",
     outputDir,
     "--size",
-    config.vision.provider === "mistral-ocr" ? "0" : "1280",
+    config.vision.provider === "mistral-ocr" ? "2560" : "1280",
   ]);
 
   if (stderr) {
