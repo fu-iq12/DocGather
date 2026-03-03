@@ -155,37 +155,24 @@ createHandler(async (req: Request) => {
   // Calculate content hash BEFORE encryption (for deduplication)
   const contentHash = await sha256(fileBytes);
   const contentHashHex = bytesToHex(contentHash);
+  const contentHashHexPg = `\\x${contentHashHex}`;
 
   // Create service client for privileged operations
   const supabase = createServiceClient();
 
-  // Check for duplicate file (same owner, same hash, role = 'original')
-  const { data: existingFile } = await supabase
-    .from("document_files")
-    .select(
-      `
-      document_id,
-      documents!inner (
-        id,
-        status,
-        owner_id,
-        deleted_at
-      )
-    `,
-    )
-    .eq("file_role", "original")
-    .eq("content_hash", `\\x${contentHashHex}`)
-    .eq("documents.owner_id", userId)
-    .is("documents.deleted_at", null)
+  // Check for duplicate file (same owner, same hash)
+  const { data: existingDoc } = await supabase
+    .from("documents")
+    .select("id, status")
+    .eq("owner_id", userId)
+    .eq("content_hash", contentHashHexPg)
+    .is("deleted_at", null)
     .limit(1)
     .single();
 
-  if (existingFile) {
+  if (existingDoc) {
     // Duplicate found - add this source to existing document's metadata
-    const doc = existingFile.documents as unknown as {
-      id: string;
-      status: string;
-    };
+    const doc = existingDoc;
 
     // Fetch and decrypt existing metadata
     const { data: privateData } = await supabase
@@ -293,6 +280,7 @@ createHandler(async (req: Request) => {
     owner_id: userId,
     document_type: null, // Determined during processing
     status: "queued",
+    content_hash: contentHashHexPg,
   });
 
   if (docError) {
@@ -302,14 +290,12 @@ createHandler(async (req: Request) => {
   }
 
   // Insert document_files record
-  const contentHashHexPg = `\\x${contentHashHex}`;
   const { error: fileError } = await supabase.from("document_files").insert({
     document_id: documentId,
     file_role: "original",
     storage_path: storagePath,
     mime_type: mimeType,
     file_size: file.size,
-    content_hash: contentHashHexPg,
     encrypted_data_key: encryptedDekResult,
     master_key_version: MASTER_KEY_VERSION,
   });

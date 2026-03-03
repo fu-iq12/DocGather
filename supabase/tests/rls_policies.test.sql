@@ -30,9 +30,9 @@ INSERT INTO public.documents (id, owner_id, document_type, status)
 VALUES 
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '22222222-2222-2222-2222-222222222222', 'passport', 'queued');
 
-INSERT INTO public.document_files (id, document_id, file_role, storage_path, mime_type, file_size, content_hash, encrypted_data_key, master_key_version)
+INSERT INTO public.document_files (id, document_id, file_role, storage_path, mime_type, file_size, encrypted_data_key, master_key_version)
 VALUES 
-  ('ffffffff-ffff-ffff-ffff-ffffffffffff', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'original', '11111111-1111-1111-1111-111111111111/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/original.pdf', 'application/pdf', 1024, decode('abcdef', 'hex'), decode('0011223344556677', 'hex'), 1);
+  ('ffffffff-ffff-ffff-ffff-ffffffffffff', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'original', '11111111-1111-1111-1111-111111111111/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/original.pdf', 'application/pdf', 1024, decode('0011223344556677', 'hex'), 1);
 
 INSERT INTO public.document_private (document_id, encrypted_metadata, master_key_version)
 VALUES 

@@ -154,7 +154,6 @@ export type Database = {
       }
       document_files: {
         Row: {
-          content_hash: string
           created_at: string | null
           deleted_at: string | null
           document_id: string
@@ -170,7 +169,6 @@ export type Database = {
           width: number | null
         }
         Insert: {
-          content_hash: string
           created_at?: string | null
           deleted_at?: string | null
           document_id: string
@@ -186,7 +184,6 @@ export type Database = {
           width?: number | null
         }
         Update: {
-          content_hash?: string
           created_at?: string | null
           deleted_at?: string | null
           document_id?: string
@@ -248,6 +245,7 @@ export type Database = {
       }
       documents: {
         Row: {
+          content_hash: string | null
           created_at: string | null
           deleted_at: string | null
           document_date: string | null
@@ -268,6 +266,7 @@ export type Database = {
           valid_until: string | null
         }
         Insert: {
+          content_hash?: string | null
           created_at?: string | null
           deleted_at?: string | null
           document_date?: string | null
@@ -288,6 +287,7 @@ export type Database = {
           valid_until?: string | null
         }
         Update: {
+          content_hash?: string | null
           created_at?: string | null
           deleted_at?: string | null
           document_date?: string | null
@@ -357,7 +357,7 @@ export type Database = {
     }
     Functions: {
       check_duplicate_file: {
-        Args: { p_content_hash: string; p_file_role?: string }
+        Args: { p_content_hash: string }
         Returns: string
       }
       decrypt_dek: {
@@ -443,7 +443,6 @@ export type Database = {
       }
       worker_update_document_file: {
         Args: {
-          p_content_hash: string
           p_document_id: string
           p_encrypted_data_key: string
           p_file_role: string

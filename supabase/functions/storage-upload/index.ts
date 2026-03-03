@@ -137,8 +137,7 @@ Deno.serve((req) =>
         return errorResponse("Failed to store file", "STORAGE_FAILED", 500);
       }
 
-      // Upsert document_files record
-      const contentHashHexPg = `\\x${contentHashHex}`;
+      // Upsert document_files record (content_hash dropped from this table)
       const { error: fileError } = await supabase.from("document_files").upsert(
         {
           document_id: documentId,
@@ -146,7 +145,6 @@ Deno.serve((req) =>
           storage_path: storagePath,
           mime_type: mimeType,
           file_size: file.size,
-          content_hash: contentHashHexPg,
           encrypted_data_key: encryptedDekResult,
           master_key_version: MASTER_KEY_VERSION,
         },

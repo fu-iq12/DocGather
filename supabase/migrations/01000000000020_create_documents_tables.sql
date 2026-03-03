@@ -12,7 +12,6 @@
 create table public.documents (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
-  -- Note: Identity associations are in document_identities table (M:N relationship, future phase)
 
   -- Classification
   document_type text, -- 'payslip', 'bank_statement', 'passport', etc.
@@ -45,6 +44,9 @@ create table public.documents (
   -- Billing Tracking
   llm_billing jsonb default '{"prompt_tokens": 0, "completion_tokens": 0, "pages": 0, "cost": 0}'::jsonb,
 
+  -- Deduplication (SHA-256 of original file content, computed BEFORE encryption)
+  content_hash bytea,
+
   -- Timestamps
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
@@ -58,6 +60,10 @@ create index idx_documents_queue on documents(status, priority_score desc)
 -- Index for owner lookups
 create index idx_documents_owner on documents(owner_id) 
   where deleted_at is null;
+
+-- Deduplication index (unique per owner)
+create unique index idx_documents_content_hash on documents(owner_id, content_hash)
+  where content_hash is not null and deleted_at is null;
 
 -- Index for looking up children of a parent
 create index idx_documents_parent on documents(parent_document_id)
@@ -86,9 +92,6 @@ create table public.document_files (
   mime_type text not null, -- 'application/pdf', 'image/jpeg', etc.
   file_size bigint,
 
-  -- Deduplication & Change Detection
-  content_hash bytea not null, -- SHA-256 of file content (computed BEFORE encryption)
-
   -- Envelope Encryption
   encrypted_data_key bytea not null, -- DEK encrypted with master key
   master_key_version int not null default 1,
@@ -102,9 +105,7 @@ create table public.document_files (
   deleted_at timestamptz -- Soft delete for file version updates
 );
 
--- Deduplication index (unique per owner's content + role)
-create unique index idx_document_files_hash on document_files(content_hash, file_role)
-  where deleted_at is null;
+
 
 -- Unique per document + role (required for upsert ON CONFLICT)
 create unique index idx_document_files_doc_role on document_files(document_id, file_role);

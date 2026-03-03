@@ -37,7 +37,7 @@ This checklist provides exhaustive implementation tasks, grouped into logical ph
 - [x] **Create `document_files` table** ✅
   - [x] Foreign key to `documents` with `ON DELETE CASCADE`
   - [x] CHECK constraint on `file_role` enum values
-  - [x] `content_hash` as `bytea NOT NULL`
+  - [x] `content_hash` moved to `documents` table (nullable bytea)
   - [x] `encrypted_data_key` and `master_key_version` for envelope encryption
   - [x] `deleted_at` for version updates (soft delete)
 
@@ -65,7 +65,7 @@ This checklist provides exhaustive implementation tasks, grouped into logical ph
   - [x] `idx_documents_owner` on `(owner_id)` WHERE `deleted_at IS NULL`
 
 - [x] **`document_files` indexes** ✅
-  - [x] `idx_document_files_hash` UNIQUE on `(content_hash, file_role)`
+  - [x] `idx_documents_content_hash` UNIQUE on `(owner_id, content_hash)` WHERE not null
   - [x] `idx_document_files_role` on `(document_id, file_role)`
 
 - [x] **`cloud_sources` indexes** ✅
@@ -94,7 +94,7 @@ VALUES ('00000000-0000-0000-0000-000000000001', 'test', 'invalid_status');
 -- Insert document, insert document_files, delete document → document_files should be deleted
 
 -- T1.4: Verify unique constraints
--- Insert two document_files with same content_hash + file_role → should fail
+-- Insert two documents with same owner_id + content_hash → should fail
 
 -- T1.5: Verify index usage
 EXPLAIN ANALYZE SELECT * FROM documents WHERE status = 'queued' AND deleted_at IS NULL ORDER BY priority_score DESC LIMIT 10;
@@ -285,7 +285,7 @@ Verification complete:
 
 - [x] **Deduplication check**
   - [x] Calculate SHA-256 hash of file content
-  - [x] Query existing files by content_hash
+  - [x] Query existing documents by content_hash
   - [x] If duplicate found, add source and return existing document_id
 
 - [x] **Encryption**

@@ -10,8 +10,7 @@
 -- -----------------------------------------------------------------------------
 -- Returns document_id if duplicate found, NULL otherwise
 CREATE OR REPLACE FUNCTION check_duplicate_file(
-  p_content_hash BYTEA,
-  p_file_role TEXT DEFAULT 'original'
+  p_content_hash BYTEA
 )
 RETURNS UUID
 LANGUAGE plpgsql
@@ -28,15 +27,12 @@ BEGIN
     RAISE EXCEPTION 'Not authenticated';
   END IF;
   
-  -- Find existing file with same hash for this owner
-  SELECT d.id INTO v_document_id
-  FROM document_files df
-  JOIN documents d ON df.document_id = d.id
-  WHERE df.content_hash = p_content_hash
-    AND df.file_role = p_file_role
-    AND df.deleted_at IS NULL
-    AND d.owner_id = v_user_id
-    AND d.deleted_at IS NULL
+  -- Find existing document with same hash for this owner
+  SELECT id INTO v_document_id
+  FROM documents
+  WHERE content_hash = p_content_hash
+    AND owner_id = v_user_id
+    AND deleted_at IS NULL
   LIMIT 1;
   
   RETURN v_document_id;
@@ -119,4 +115,3 @@ $$;
 REVOKE ALL ON FUNCTION soft_delete_document FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION soft_delete_document TO authenticated;
 GRANT EXECUTE ON FUNCTION soft_delete_document TO service_role;
-

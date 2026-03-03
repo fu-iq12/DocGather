@@ -90,7 +90,6 @@ CREATE OR REPLACE FUNCTION worker_update_document_file(
   p_storage_path TEXT,
   p_mime_type TEXT,
   p_file_size BIGINT,
-  p_content_hash BYTEA,
   p_encrypted_data_key BYTEA,
   p_master_key_version INT DEFAULT 1,
   p_width INT DEFAULT NULL,
@@ -119,12 +118,12 @@ BEGIN
   -- Insert new file record
   INSERT INTO document_files (
     document_id, file_role, storage_path, mime_type, file_size,
-    content_hash, encrypted_data_key, master_key_version,
+    encrypted_data_key, master_key_version,
     width, height, page_count
   )
   VALUES (
     p_document_id, p_file_role, p_storage_path, p_mime_type, p_file_size,
-    p_content_hash, p_encrypted_data_key, p_master_key_version,
+    p_encrypted_data_key, p_master_key_version,
     p_width, p_height, p_page_count
   )
   RETURNING id INTO v_file_id;
@@ -133,8 +132,8 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION worker_update_document_file(UUID, TEXT, TEXT, TEXT, BIGINT, BYTEA, BYTEA, INT, INT, INT, INT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION worker_update_document_file(UUID, TEXT, TEXT, TEXT, BIGINT, BYTEA, BYTEA, INT, INT, INT, INT) TO service_role;
+REVOKE ALL ON FUNCTION worker_update_document_file(UUID, TEXT, TEXT, TEXT, BIGINT, BYTEA, INT, INT, INT, INT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION worker_update_document_file(UUID, TEXT, TEXT, TEXT, BIGINT, BYTEA, INT, INT, INT, INT) TO service_role;
 
 -- -----------------------------------------------------------------------------
 -- worker_log_process_step: Log a granular step in the document pipeline
@@ -349,4 +348,3 @@ $$;
 
 REVOKE ALL ON FUNCTION worker_increment_llm_billing(UUID, BIGINT, BIGINT, INT, NUMERIC(10, 6)) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION worker_increment_llm_billing(UUID, BIGINT, BIGINT, INT, NUMERIC(10, 6)) TO service_role;
-

@@ -89,7 +89,6 @@ async function createTestDocument(
     storage_path: storagePath,
     mime_type: "application/pdf",
     file_size: content.length,
-    content_hash: contentHash,
     encrypted_data_key: encryptedDek,
     master_key_version: 1,
   });

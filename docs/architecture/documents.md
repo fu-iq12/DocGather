@@ -118,6 +118,7 @@ erDiagram
         text process_status
         jsonb process_history
         float priority_score
+        bytea content_hash
         uuid parent_document_id FK
         jsonb page_range
         jsonb llm_billing
@@ -145,7 +146,6 @@ erDiagram
         text storage_path
         text mime_type
         int8 file_size
-        bytea content_hash
         bytea encrypted_data_key
         int4 master_key_version
         timestamptz created_at
@@ -262,8 +262,6 @@ create table public.document_files (
   mime_type text not null, -- 'application/pdf', 'image/jpeg', etc.
   file_size bigint,
 
-  -- Deduplication & Change Detection
-  content_hash bytea not null, -- SHA-256 of file content (computed BEFORE encryption)
 
   -- Envelope Encryption
   encrypted_data_key bytea not null, -- DEK encrypted with master key
@@ -278,9 +276,6 @@ create table public.document_files (
   deleted_at timestamptz -- Soft delete for file version updates
 );
 
--- Deduplication index (unique per owner's content + role)
-create unique index idx_document_files_hash on document_files(content_hash, file_role)
-  where deleted_at is null;
 
 -- Unique per document + role (required for upsert ON CONFLICT)
 create unique index idx_document_files_doc_role on document_files(document_id, file_role);
@@ -1068,7 +1063,6 @@ create or replace function update_document_file(
   p_document_id uuid,
   p_file_role text,
   p_new_storage_path text,
-  p_new_content_hash bytea,
   p_new_encrypted_dek bytea,
   p_new_mime_type text,
   p_new_file_size bigint
@@ -1097,11 +1091,11 @@ begin
   -- Insert new file record
   insert into document_files (
     document_id, file_role, storage_path, mime_type,
-    file_size, content_hash, encrypted_data_key, master_key_version
+    file_size, encrypted_data_key, master_key_version
   )
   values (
     p_document_id, p_file_role, p_new_storage_path, p_new_mime_type,
-    p_new_file_size, p_new_content_hash, p_new_encrypted_dek, 1
+    p_new_file_size, p_new_encrypted_dek, 1
   )
   returning id into v_new_id;
 
@@ -1370,7 +1364,7 @@ Priority should be recalculated when:
 | MIME type storage           | `document_files.mime_type`                                     | Required for all files                                  |
 | Process status & history    | `documents.process_status` + `documents.process_history` JSONB | Status for quick filtering, history for debugging       |
 | Priority score              | `documents.priority_score` with composite index                | Index on `(status, priority DESC)` for queue queries    |
-| File deduplication          | `document_files.content_hash` with unique index                | SHA-256 hash, checked before processing                 |
+| File deduplication          | `documents.content_hash` with per-owner unique index           | SHA-256 hash, checked before processing                 |
 | Change detection            | `cloud_sources` table with multi-signal tracking               | Cloud IDs, ETags, revisions, and content hashes         |
 | Tier C metadata             | PII-free summaries/filenames                                   | Now stored encrypted, but decoupled from raw OCR        |
 
@@ -1414,7 +1408,7 @@ The envelope encryption approach means key rotation is straightforward:
 | `documents`           | `(status, priority_score DESC) WHERE status='queued'` | Queue processing     |
 | `documents`           | `(owner_id) WHERE deleted_at IS NULL`                 | Owner lookups        |
 | `documents`           | `(identity_id) WHERE deleted_at IS NULL`              | Identity lookups     |
-| `document_files`      | `(content_hash, file_role)` UNIQUE                    | Deduplication        |
+| `documents`           | `(owner_id, content_hash)` UNIQUE WHERE not null       | Deduplication        |
 | `document_files`      | `(document_id, file_role)`                            | Role lookup          |
 | `cloud_sources`       | `(source_type, cloud_file_id) WHERE NOT NULL`         | Cloud file tracking  |
 | `document_access_log` | `(document_id, accessed_at DESC)`                     | Document audit trail |

@@ -529,7 +529,6 @@ export async function createDocumentFile(
   storagePath: string,
   mimeType: string,
   fileSize: number,
-  contentHash: Uint8Array,
   encryptedDataKey: Uint8Array,
   options?: {
     masterKeyVersion?: number;
@@ -544,7 +543,6 @@ export async function createDocumentFile(
     p_storage_path: storagePath,
     p_mime_type: mimeType,
     p_file_size: fileSize,
-    p_content_hash: contentHash,
     p_encrypted_data_key: encryptedDataKey,
     p_master_key_version: options?.masterKeyVersion ?? 1,
     p_width: options?.width ?? null,
