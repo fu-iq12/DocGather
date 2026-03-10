@@ -93,7 +93,7 @@ async function spawnChildJob(
       data,
       opts: {
         ...opts,
-        jobId: `${data.documentId}-${name}`,
+        jobId: `${data.jobNumber}-${data.documentId}-${name}`,
         failParentOnFailure: true,
         parent: {
           id: parentJob.id,
@@ -139,12 +139,19 @@ export async function queueDocumentForProcessing(
     priority,
   } = params;
 
+  const jobNumber = new Date()
+    .toISOString()
+    .substring(0, 19)
+    .replace(/[-:]/g, "")
+    .replace(/T/g, "-");
+
   // We start with Initial step to allow logic to route
   const flow = await addJobToFlow({
     name: "process-document",
     queueName: "orchestrator",
     data: {
       documentId,
+      jobNumber,
       mimeType,
       originalPath,
       originalFileId,
@@ -154,7 +161,7 @@ export async function queueDocumentForProcessing(
       step: Step.Initial,
     },
     opts: {
-      jobId: `${documentId}-orchestrator`,
+      jobId: `${jobNumber}-${documentId}-orchestrator`,
       priority,
     },
   });
@@ -637,6 +644,44 @@ export const orchestratorProcessor = async (job: Job, token?: string) => {
       finalStatus,
       (input as any).rejectDetails,
     );
+
+    // Knowledge Graph Ingestion Batching
+    // Trigger kg-ingestion debounce for successfully classified relevant documents
+    if (
+      results.classification?.documentType &&
+      results.classification.documentType !== "other.irrelevant" &&
+      results.classification.documentType !== "splitted"
+    ) {
+      const { kgIngestionQueue } = await import("./queues.js");
+      const debounceJobId = `${input.ownerId}-kg-batch`;
+
+      let job = await kgIngestionQueue.getJob(debounceJobId);
+      if (job && ((await job.isCompleted()) || (await job.isFailed()))) {
+        await job.remove();
+        job = undefined;
+      }
+
+      job = await kgIngestionQueue.add(
+        "kg-ingest",
+        { ownerId: input.ownerId, documentIds: [input.documentId] },
+        {
+          jobId: debounceJobId, // Debounce key
+          delay: parseInt(process.env.KG_INGEST_DELAY_MS || "15000", 10), // Wait to allow multiple concurrent documents to accumulate in Postgres
+        },
+      );
+      // add document to job if not already present
+      // count how many documents are in the job
+      // get rid of the delay if enough documents are in the job
+      if (!job.data.documentIds.includes(input.documentId)) {
+        job.data.documentIds.push(input.documentId);
+        await job.updateData(job.data);
+
+        const batchSize = parseInt(process.env.KG_INGEST_BATCH_SIZE || "10");
+        if (job.data.documentIds.length >= batchSize) {
+          await job.promote();
+        }
+      }
+    }
 
     // Clean up cached files for this document
     await clearCacheForDocument(input.documentId);

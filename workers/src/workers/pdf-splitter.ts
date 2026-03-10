@@ -18,6 +18,7 @@ import {
   updateDocumentPrivate,
 } from "../supabase.js";
 import type { SubtaskInput, PdfSplitResult } from "../types.js";
+import { generateDeterministicChildDocumentId } from "../utils/uuid.js";
 
 // Queue for triggering processing of new details
 const orchestratorQueue = new Queue("orchestrator", { connection });
@@ -124,7 +125,15 @@ async function processPdfSplitterJob(
 
       // 2. Create child document in DB
       const pageRange = { pages: pageIndices, type: type };
+
+      const deterministicChildId = generateDeterministicChildDocumentId(
+        documentId,
+        ownerId,
+        JSON.stringify(pageRange),
+      );
+
       const childDocId = await createChildDocument(
+        deterministicChildId,
         documentId,
         ownerId,
         pageRange, // Store page range (JSON) for lineage

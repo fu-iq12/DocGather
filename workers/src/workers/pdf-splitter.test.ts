@@ -177,12 +177,14 @@ describe("pdf-splitter worker", () => {
       // Verify Supabase calls
       expect(mocks.createChildDocument).toHaveBeenCalledTimes(2);
       expect(mocks.createChildDocument).toHaveBeenCalledWith(
+        expect.any(String),
         "parent-doc",
         "user-456",
         { pages: [0, 1], type: "doc1" },
         "doc1",
       );
       expect(mocks.createChildDocument).toHaveBeenCalledWith(
+        expect.any(String),
         "parent-doc",
         "user-456",
         { pages: [2], type: "doc2" },
@@ -209,6 +211,7 @@ describe("pdf-splitter worker", () => {
       const job = {
         data: {
           documentId: "doc-123",
+          jobNumber: "job-123",
           ownerId: "user-456",
           mimeType: "application/pdf",
           originalFileId: "file-789",
@@ -283,4 +286,3 @@ describe("pdf-splitter worker", () => {
     });
   });
 });
-

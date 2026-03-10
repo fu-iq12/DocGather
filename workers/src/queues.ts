@@ -42,6 +42,25 @@ export const orchestratorQueue = new Queue("orchestrator", {
   },
 });
 
+// Queue for aggregating Knowledge Graph ingestion batches (debounced per owner)
+export const kgIngestionQueue = new Queue("kg-ingestion", {
+  connection,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: {
+      type: "exponential",
+      delay: 5000,
+    },
+    removeOnComplete: {
+      age: 24 * 60 * 60, // Keep completed jobs for 24 hours
+      count: 1000,
+    },
+    removeOnFail: {
+      age: 7 * 24 * 60 * 60, // Keep failed jobs for 7 days
+    },
+  },
+});
+
 // Queue for task workers (child jobs: extract, classify, etc.)
 // We use a separate queue for each worker to ensure correct routing
 // (BullMQ distributes round-robin on shared queues, ignoring job names)
@@ -101,6 +120,7 @@ export async function closeQueues(): Promise<void> {
 
   await Promise.all([
     orchestratorQueue.close(),
+    kgIngestionQueue.close(),
     ...taskQueueList.map((q) => q.close()),
     orchestratorEvents.close(),
     ...taskEventList.map((e) => e.close()),

@@ -79,6 +79,7 @@ describe("MistralBatchOcr", () => {
       const promise = batchOcr.execute(
         { type: "file", file_id: "doc-1" },
         "mistral-ocr-latest",
+        "test-req",
       );
       promise.then((res) => (resolved = res));
 
@@ -274,10 +275,14 @@ describe("MistralBatchOcr", () => {
       });
 
       const promise = batchOcr.execute({}, "model");
+      const errPromise = promise.catch((e) => e);
+
       await vi.advanceTimersByTimeAsync(5000); // Create
       await vi.advanceTimersByTimeAsync(1000); // Poll
 
-      await expect(promise).rejects.toThrow(/ended with status FAILED/);
+      const err = await errPromise;
+      expect(err).toBeInstanceOf(Error);
+      expect(err.message).toMatch(/ended with status FAILED/);
     });
   });
 });

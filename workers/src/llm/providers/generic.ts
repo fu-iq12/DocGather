@@ -64,6 +64,7 @@ export class GenericProvider implements LLMProvider {
     const model = options?.model || this.defaultModel;
 
     const requestBody: Record<string, unknown> = {
+      // reasoning: { enabled: false },
       model,
       messages,
       temperature: options?.temperature ?? 0.1,

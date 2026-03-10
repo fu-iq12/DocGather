@@ -496,12 +496,14 @@ export async function updateDocumentPrivate(
  * linked to its parent, with page range lineage metadata.
  */
 export async function createChildDocument(
+  childDocumentId: string,
   parentDocumentId: string,
   ownerId: string,
   pageRange: any, // JSONB structure { pages: number[], type: string }
   typeHint: string,
 ): Promise<string> {
   const { data, error } = await supabase.rpc("worker_create_child_document", {
+    p_child_document_id: childDocumentId,
     p_parent_document_id: parentDocumentId,
     p_owner_id: ownerId,
     p_page_range: pageRange,
@@ -555,4 +557,116 @@ export async function createDocumentFile(
   }
 
   return data as string;
+}
+
+// ============================================================================
+// Knowledge Graph Operations
+// ============================================================================
+
+/**
+ * Fetch a batch of pending documents for KG processing.
+ */
+export async function getPendingKgDocuments(
+  ownerId: string,
+  limit: number = 10,
+): Promise<
+  Array<{
+    document_id: string;
+    document_type: string;
+    document_date: string;
+    extracted_data: any;
+  }>
+> {
+  const { data, error } = await supabase.rpc(
+    "worker_kg_get_pending_documents",
+    {
+      p_owner_id: ownerId,
+      p_limit: limit,
+    },
+  );
+
+  if (error) {
+    throw new Error(`worker_kg_get_pending_documents failed: ${error.message}`);
+  }
+
+  return data || [];
+}
+
+/**
+ * Fetch the current decoded Knowledge Graph for an owner.
+ */
+export async function getKnowledgeGraph(ownerId: string): Promise<{
+  entities: any[];
+  relationships: any[];
+  confirmed_overrides: any[];
+}> {
+  const { data, error } = await supabase.rpc("worker_kg_get_graph", {
+    p_owner_id: ownerId,
+  });
+
+  if (error) {
+    throw new Error(`worker_kg_get_graph failed: ${error.message}`);
+  }
+
+  // The RPC returns a JSON object with 'entities', 'relationships', and 'confirmed_overrides' arrays.
+  return data as any;
+}
+
+/**
+ * Ensure the owner entity exists.
+ */
+export async function ensureOwnerEntity(ownerId: string): Promise<string> {
+  const { data, error } = await supabase.rpc("worker_kg_ensure_owner_entity", {
+    p_owner_id: ownerId,
+  });
+
+  if (error) {
+    throw new Error(`worker_kg_ensure_owner_entity failed: ${error.message}`);
+  }
+
+  return data as string;
+}
+
+/**
+ * Apply mutations to the Knowledge Graph.
+ */
+export async function applyKgMutations(
+  ownerId: string,
+  mutations: any,
+  attributions: any,
+  documentIds: string[],
+  rawLlmResponse?: any,
+): Promise<any> {
+  const { data, error } = await supabase.rpc("worker_kg_apply_mutations", {
+    p_owner_id: ownerId,
+    p_mutations: mutations,
+    p_attributions: attributions,
+    p_document_ids: documentIds,
+    p_raw_llm_response: rawLlmResponse || null,
+  });
+
+  if (error) {
+    throw new Error(`worker_kg_apply_mutations failed: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * Log a batch error and return documents to pending state.
+ */
+export async function logKgBatchError(
+  ownerId: string,
+  documentIds: string[],
+  errorMessage: string,
+): Promise<void> {
+  const { error } = await supabase.rpc("worker_kg_log_batch_error", {
+    p_owner_id: ownerId,
+    p_document_ids: documentIds,
+    p_error_message: errorMessage,
+  });
+
+  if (error) {
+    throw new Error(`worker_kg_log_batch_error failed: ${error.message}`);
+  }
 }

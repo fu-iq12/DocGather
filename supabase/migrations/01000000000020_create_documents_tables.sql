@@ -26,6 +26,11 @@ create table public.documents (
     check (process_status in ('pending', 'converting', 'pre_analyzing', 'splitting', 'scaling', 'pre_filtering', 'extracting', 'classifying', 'normalizing', 'completed', 'failed', 'rejected')),
   process_history jsonb default '[]'::jsonb,
 
+  -- Classification Status
+  
+  kg_sync_status text default 'pending'
+    check (kg_sync_status in ('pending', 'processing', 'synced', 'failed', 'irrelevant')),
+
   -- Queue Priority
   priority_score float default 0.0, -- Higher = process first
 
@@ -56,6 +61,10 @@ create table public.documents (
 -- Critical index for queue processing
 create index idx_documents_queue on documents(status, priority_score desc)
   where status = 'queued' and deleted_at is null;
+
+-- Index to quickly find pending documents for the KG worker
+create index idx_documents_kg_sync on public.documents(owner_id, kg_sync_status)
+  where kg_sync_status = 'pending' and deleted_at is null;
 
 -- Index for owner lookups
 create index idx_documents_owner on documents(owner_id) 

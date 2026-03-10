@@ -76,7 +76,7 @@ export interface LLMProvider {
 }
 
 export interface ModelConfig {
-  provider: "ovhcloud" | "mistral" | "ollama" | "mistral-ocr";
+  provider: "ovhcloud" | "mistral" | "openrouter" | "ollama" | "mistral-ocr";
   endpoint: string;
   model: string;
   numCtx: number;
@@ -101,6 +101,7 @@ export function getDefaultConfig(): LLMConfig {
   const ocrProvider = (process.env.LLM_OCR_PROVIDER || "ovhcloud") as
     | "ovhcloud"
     | "mistral"
+    | "openrouter"
     | "ollama"
     | "mistral-ocr";
   const ocrModel =
@@ -109,58 +110,72 @@ export function getDefaultConfig(): LLMConfig {
       ? "mistral-ocr-latest"
       : ocrProvider === "ollama"
         ? "mistral-small3.2"
-        : ocrProvider === "mistral"
-          ? "mistral-small-latest"
-          : "Mistral-Small-3.2-24B-Instruct-2506");
+        : ocrProvider === "openrouter"
+          ? "qwen/qwen3.5-35b-a3b"
+          : ocrProvider === "mistral"
+            ? "mistral-small-latest"
+            : "Mistral-Small-3.2-24B-Instruct-2506");
   const ocrEndpoint =
     process.env.LLM_OCR_ENDPOINT ||
     (ocrProvider === "mistral-ocr"
       ? "https://api.mistral.ai/v1/ocr"
       : ocrProvider === "ollama"
         ? "http://host.docker.internal:11434/v1/chat/completions"
-        : ocrProvider === "mistral"
-          ? "https://api.mistral.ai/v1/chat/completions"
-          : "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions");
+        : ocrProvider === "openrouter"
+          ? "https://openrouter.ai/api/v1/chat/completions"
+          : ocrProvider === "mistral"
+            ? "https://api.mistral.ai/v1/chat/completions"
+            : "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions");
 
   // Text Config
   const textProvider = (process.env.LLM_TEXT_PROVIDER || "ovhcloud") as
     | "ovhcloud"
     | "mistral"
+    | "openrouter"
     | "ollama";
   const textModel =
     process.env.LLM_TEXT_MODEL ||
     (textProvider === "ollama"
       ? "mistral-small3.2"
-      : textProvider === "mistral"
-        ? "mistral-small-latest"
-        : "Mistral-Small-3.2-24B-Instruct-2506");
+      : textProvider === "openrouter"
+        ? "qwen/qwen3.5-35b-a3b"
+        : textProvider === "mistral"
+          ? "mistral-small-latest"
+          : "Mistral-Small-3.2-24B-Instruct-2506");
   const textEndpoint =
     process.env.LLM_TEXT_ENDPOINT ||
     (textProvider === "ollama"
       ? "http://host.docker.internal:11434/v1/chat/completions"
-      : textProvider === "mistral"
-        ? "https://api.mistral.ai/v1/chat/completions"
-        : "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions");
+      : textProvider === "openrouter"
+        ? "https://openrouter.ai/api/v1/chat/completions"
+        : textProvider === "mistral"
+          ? "https://api.mistral.ai/v1/chat/completions"
+          : "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions");
 
   // Vision Config (VLMs for document normalization/explanation)
   const visionProvider = (process.env.LLM_VISION_PROVIDER || "ovhcloud") as
     | "ovhcloud"
     | "mistral"
+    | "openrouter"
     | "ollama";
   const visionModel =
     process.env.LLM_VISION_MODEL ||
     (visionProvider === "ollama"
       ? "mistral-small3.2"
-      : visionProvider === "mistral"
-        ? "mistral-small-latest"
-        : "Mistral-Small-3.2-24B-Instruct-2506");
+      : visionProvider === "openrouter"
+        ? "qwen/qwen3.5-35b-a3b"
+        : visionProvider === "mistral"
+          ? "mistral-small-latest"
+          : "Mistral-Small-3.2-24B-Instruct-2506");
   const visionEndpoint =
     process.env.LLM_VISION_ENDPOINT ||
     (visionProvider === "ollama"
       ? "http://host.docker.internal:11434/v1/chat/completions"
-      : visionProvider === "mistral"
-        ? "https://api.mistral.ai/v1/chat/completions"
-        : "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions");
+      : visionProvider === "openrouter"
+        ? "https://openrouter.ai/api/v1/chat/completions"
+        : visionProvider === "mistral"
+          ? "https://api.mistral.ai/v1/chat/completions"
+          : "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions");
 
   return {
     cache: {

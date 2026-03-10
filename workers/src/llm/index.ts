@@ -42,6 +42,17 @@ function createProvider(modelConfig: ModelConfig): LLMProvider {
         modelConfig.model,
         modelConfig.numCtx,
       );
+    case "openrouter":
+      if (!process.env.OPENROUTER_API_KEY) {
+        throw new Error(
+          "OPENROUTER_API_KEY is required for OpenRouter provider",
+        );
+      }
+      return new GenericProvider(
+        modelConfig.endpoint,
+        modelConfig.model,
+        process.env.OPENROUTER_API_KEY,
+      );
     case "mistral":
       if (!process.env.MISTRAL_API_KEY) {
         throw new Error("MISTRAL_API_KEY is required for Mistral provider");

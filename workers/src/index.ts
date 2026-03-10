@@ -22,6 +22,7 @@ import { pdfSplitterWorker } from "./workers/pdf-splitter.js";
 import { txtSimpleExtractWorker } from "./workers/txt-simple-extract.js";
 import { formatConversionWorker } from "./workers/format-conversion.js";
 import { mistralCleanupWorker } from "./workers/mistral-cleanup.js";
+import { kgWorker } from "./workers/kg-worker.js";
 import { closeQueues, connection } from "./queues.js";
 import { clearStaleCacheEntries } from "./file-cache.js";
 import { Queue } from "bullmq";
@@ -232,6 +233,7 @@ async function shutdown(signal: string): Promise<void> {
     pdfSplitterWorker.close(),
     formatConversionWorker.close(),
     mistralCleanupWorker.close(),
+    kgWorker.close(),
   ]);
 
   // Close queues and Redis connection

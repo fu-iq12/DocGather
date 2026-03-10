@@ -169,3 +169,55 @@ export function hexToBytes(hex: string): Uint8Array {
   }
   return bytes;
 }
+
+// ----------------------------------------------------------------------------
+// Deterministic UUIDs (v5)
+// ----------------------------------------------------------------------------
+
+export const DOCGATHER_NAMESPACE_UUID = "1e7123aa-3f41-4c12-88f5-b1a8dd282e38";
+const NAMESPACE_BYTES = hexToBytes(DOCGATHER_NAMESPACE_UUID.replace(/-/g, ""));
+
+/**
+ * Generates a deterministic UUIDv5 based on the DocGather namespace and a provided name.
+ */
+export async function generateDeterministicUUID(name: string): Promise<string> {
+  const nameBytes = new TextEncoder().encode(name);
+  const data = new Uint8Array(NAMESPACE_BYTES.length + nameBytes.length);
+  data.set(NAMESPACE_BYTES, 0);
+  data.set(nameBytes, NAMESPACE_BYTES.length);
+
+  const hash = await crypto.subtle.digest("SHA-1", data);
+  const bytes = new Uint8Array(hash.slice(0, 16));
+
+  bytes[6] = (bytes[6] & 0x0f) | 0x50; // Version 5
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // Variant RFC 4122
+
+  const hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+/**
+ * Generates a deterministic document ID for a root upload based on owner ID and content hash.
+ */
+export async function generateDeterministicDocumentId(
+  ownerId: string,
+  contentHashHex: string,
+): Promise<string> {
+  const input = `root:${ownerId}:${contentHashHex}`;
+  return await generateDeterministicUUID(input);
+}
+
+/**
+ * Generates a deterministic document ID for a split child based on parent ID, owner ID, and page range.
+ */
+export async function generateDeterministicChildDocumentId(
+  parentDocumentId: string,
+  ownerId: string,
+  pageRangeText: string,
+): Promise<string> {
+  const input = `child:${parentDocumentId}:${ownerId}:${pageRangeText}`;
+  return await generateDeterministicUUID(input);
+}

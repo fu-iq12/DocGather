@@ -253,6 +253,7 @@ export type Database = {
           document_type: string | null
           extraction_confidence: number | null
           id: string
+          kg_sync_status: string | null
           llm_billing: Json | null
           owner_id: string
           page_range: Json | null
@@ -274,6 +275,7 @@ export type Database = {
           document_type?: string | null
           extraction_confidence?: number | null
           id?: string
+          kg_sync_status?: string | null
           llm_billing?: Json | null
           owner_id: string
           page_range?: Json | null
@@ -295,6 +297,7 @@ export type Database = {
           document_type?: string | null
           extraction_confidence?: number | null
           id?: string
+          kg_sync_status?: string | null
           llm_billing?: Json | null
           owner_id?: string
           page_range?: Json | null
@@ -313,6 +316,217 @@ export type Database = {
             columns: ["parent_document_id"]
             isOneToOne: false
             referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kg_confirmed_overrides: {
+        Row: {
+          confirmed_at: string | null
+          encrypted_value: string | null
+          id: string
+          json_path: string
+          master_key_version: number
+          owner_id: string
+          source: string
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          encrypted_value?: string | null
+          id?: string
+          json_path: string
+          master_key_version?: number
+          owner_id: string
+          source: string
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          encrypted_value?: string | null
+          id?: string
+          json_path?: string
+          master_key_version?: number
+          owner_id?: string
+          source?: string
+          target_id?: string
+          target_type?: string
+        }
+        Relationships: []
+      }
+      kg_document_attributions: {
+        Row: {
+          attribution_confidence: number | null
+          created_at: string | null
+          document_id: string
+          id: string
+          role: string | null
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          attribution_confidence?: number | null
+          created_at?: string | null
+          document_id: string
+          id?: string
+          role?: string | null
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          attribution_confidence?: number | null
+          created_at?: string | null
+          document_id?: string
+          id?: string
+          role?: string | null
+          target_id?: string
+          target_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kg_document_attributions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kg_entities: {
+        Row: {
+          created_at: string | null
+          deleted_at: string | null
+          encrypted_data: string | null
+          entity_type: string
+          id: string
+          is_owner: boolean | null
+          master_key_version: number
+          owner_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          deleted_at?: string | null
+          encrypted_data?: string | null
+          entity_type: string
+          id?: string
+          is_owner?: boolean | null
+          master_key_version?: number
+          owner_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          deleted_at?: string | null
+          encrypted_data?: string | null
+          entity_type?: string
+          id?: string
+          is_owner?: boolean | null
+          master_key_version?: number
+          owner_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      kg_mutation_log: {
+        Row: {
+          created_at: string | null
+          documents_in_batch: Json
+          id: string
+          mutations_applied: Json | null
+          owner_id: string
+          raw_llm_response: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          documents_in_batch: Json
+          id?: string
+          mutations_applied?: Json | null
+          owner_id: string
+          raw_llm_response?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          documents_in_batch?: Json
+          id?: string
+          mutations_applied?: Json | null
+          owner_id?: string
+          raw_llm_response?: Json | null
+        }
+        Relationships: []
+      }
+      kg_relationships: {
+        Row: {
+          created_at: string | null
+          deleted_at: string | null
+          encrypted_data: string | null
+          id: string
+          master_key_version: number
+          owner_id: string
+          relationship_type: string
+          source_entity_id: string
+          target_entity_id: string
+          updated_at: string | null
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          deleted_at?: string | null
+          encrypted_data?: string | null
+          id?: string
+          master_key_version?: number
+          owner_id: string
+          relationship_type: string
+          source_entity_id: string
+          target_entity_id: string
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          deleted_at?: string | null
+          encrypted_data?: string | null
+          id?: string
+          master_key_version?: number
+          owner_id?: string
+          relationship_type?: string
+          source_entity_id?: string
+          target_entity_id?: string
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kg_relationships_source_entity_id_fkey"
+            columns: ["source_entity_id"]
+            isOneToOne: false
+            referencedRelation: "kg_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kg_relationships_source_entity_id_fkey"
+            columns: ["source_entity_id"]
+            isOneToOne: false
+            referencedRelation: "kg_entities_decoded"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kg_relationships_target_entity_id_fkey"
+            columns: ["target_entity_id"]
+            isOneToOne: false
+            referencedRelation: "kg_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kg_relationships_target_entity_id_fkey"
+            columns: ["target_entity_id"]
+            isOneToOne: false
+            referencedRelation: "kg_entities_decoded"
             referencedColumns: ["id"]
           },
         ]
@@ -354,6 +568,152 @@ export type Database = {
           },
         ]
       }
+      kg_confirmed_overrides_decoded: {
+        Row: {
+          confirmed_at: string | null
+          confirmed_value: Json | null
+          id: string | null
+          json_path: string | null
+          master_key_version: number | null
+          owner_id: string | null
+          source: string | null
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          confirmed_at?: string | null
+          confirmed_value?: never
+          id?: string | null
+          json_path?: string | null
+          master_key_version?: number | null
+          owner_id?: string | null
+          source?: string | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          confirmed_at?: string | null
+          confirmed_value?: never
+          id?: string | null
+          json_path?: string | null
+          master_key_version?: number | null
+          owner_id?: string | null
+          source?: string | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
+      kg_entities_decoded: {
+        Row: {
+          created_at: string | null
+          data: Json | null
+          deleted_at: string | null
+          entity_type: string | null
+          id: string | null
+          is_owner: boolean | null
+          master_key_version: number | null
+          owner_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data?: never
+          deleted_at?: string | null
+          entity_type?: string | null
+          id?: string | null
+          is_owner?: boolean | null
+          master_key_version?: number | null
+          owner_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data?: never
+          deleted_at?: string | null
+          entity_type?: string | null
+          id?: string | null
+          is_owner?: boolean | null
+          master_key_version?: number | null
+          owner_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      kg_relationships_decoded: {
+        Row: {
+          created_at: string | null
+          data: Json | null
+          deleted_at: string | null
+          id: string | null
+          master_key_version: number | null
+          owner_id: string | null
+          relationship_type: string | null
+          source_entity_id: string | null
+          target_entity_id: string | null
+          updated_at: string | null
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data?: never
+          deleted_at?: string | null
+          id?: string | null
+          master_key_version?: number | null
+          owner_id?: string | null
+          relationship_type?: string | null
+          source_entity_id?: string | null
+          target_entity_id?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data?: never
+          deleted_at?: string | null
+          id?: string | null
+          master_key_version?: number | null
+          owner_id?: string | null
+          relationship_type?: string | null
+          source_entity_id?: string | null
+          target_entity_id?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kg_relationships_source_entity_id_fkey"
+            columns: ["source_entity_id"]
+            isOneToOne: false
+            referencedRelation: "kg_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kg_relationships_source_entity_id_fkey"
+            columns: ["source_entity_id"]
+            isOneToOne: false
+            referencedRelation: "kg_entities_decoded"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kg_relationships_target_entity_id_fkey"
+            columns: ["target_entity_id"]
+            isOneToOne: false
+            referencedRelation: "kg_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kg_relationships_target_entity_id_fkey"
+            columns: ["target_entity_id"]
+            isOneToOne: false
+            referencedRelation: "kg_entities_decoded"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       check_duplicate_file: {
@@ -391,8 +751,22 @@ export type Database = {
         Args: { p_document_id: string }
         Returns: boolean
       }
+      user_kg_confirm_field: {
+        Args: {
+          p_json_path: string
+          p_target_id: string
+          p_target_type: string
+          p_value: Json
+        }
+        Returns: string
+      }
+      user_kg_remove_override: {
+        Args: { p_override_id: string }
+        Returns: boolean
+      }
       worker_create_child_document: {
         Args: {
+          p_child_document_id: string
           p_owner_id: string
           p_page_range: Json
           p_parent_document_id: string
@@ -408,6 +782,46 @@ export type Database = {
           p_pages?: number
           p_prompt_tokens?: number
         }
+        Returns: boolean
+      }
+      worker_kg_apply_mutations: {
+        Args: {
+          p_attributions: Json
+          p_document_ids: string[]
+          p_mutations: Json
+          p_owner_id: string
+          p_raw_llm_response?: Json
+        }
+        Returns: Json
+      }
+      worker_kg_ensure_owner_entity: {
+        Args: { p_owner_id: string }
+        Returns: string
+      }
+      worker_kg_get_graph: { Args: { p_owner_id: string }; Returns: Json }
+      worker_kg_get_pending_documents: {
+        Args: { p_limit?: number; p_owner_id: string }
+        Returns: {
+          document_date: string
+          document_id: string
+          document_type: string
+          extracted_data: Json
+        }[]
+      }
+      worker_kg_log_batch_error: {
+        Args: {
+          p_document_ids: string[]
+          p_error_message: string
+          p_owner_id: string
+        }
+        Returns: boolean
+      }
+      worker_kg_mark_batch_failed: {
+        Args: { p_document_ids: string[] }
+        Returns: boolean
+      }
+      worker_kg_mark_batch_synced: {
+        Args: { p_document_ids: string[] }
         Returns: boolean
       }
       worker_log_process_step: {

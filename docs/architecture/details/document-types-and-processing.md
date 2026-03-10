@@ -502,17 +502,16 @@ graph TD
 
 ## 🔟 Tool Dependencies
 
-| Tool | Purpose |
-
-| :------------------------- | :------------------------------------ |
-| `pdfplumber` | PDF text extraction (best for tables) |
-| `Pillow` + `pillow-heif` | Image manipulation, HEIC support |
-| `pdf2image` + poppler | PDF → images for vision |
-| `python-docx` / `openpyxl` | Office document extraction |
-| `LibreOffice` (headless) | Legacy Office → PDF |
-| `extract-msg` | Outlook MSG parsing |
-| `beautifulsoup4` | HTML parsing |
-| `tesseract-ocr` | Efficient text pre-filtering (detects empty pages) |
+| Tool                       | Purpose                                            |
+| :------------------------- | :------------------------------------------------- |
+| `pdfplumber`               | PDF text extraction (best for tables)              |
+| `Pillow` + `pillow-heif`   | Image manipulation, HEIC support                   |
+| `pdf2image` + poppler      | PDF → images for vision                            |
+| `python-docx` / `openpyxl` | Office document extraction                         |
+| `LibreOffice` (headless)   | Legacy Office → PDF                                |
+| `extract-msg`              | Outlook MSG parsing                                |
+| `beautifulsoup4`           | HTML parsing                                       |
+| `tesseract-ocr`            | Efficient text pre-filtering (detects empty pages) |
 
 > [!NOTE]
 > **Tesseract role**: Only used for **pre-filtering** (checking if text exists) to save LLM costs.

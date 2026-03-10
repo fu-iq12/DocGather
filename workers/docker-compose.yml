@@ -35,11 +35,14 @@ services:
       - LLM_TEXT_ENDPOINT=${LLM_TEXT_ENDPOINT:-}
       - LLM_NUM_CTX=${LLM_NUM_CTX:-}
       - OVH_AI_API_KEY=${OVH_AI_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
       - MISTRAL_MAX_RPS=${MISTRAL_MAX_RPS:-1}
       - LLM_CACHE_ENABLED=${LLM_CACHE_ENABLED:-false}
       - LLM_CACHE_DIR=/app/cache
       - FILE_CACHE_KEEP_ON_DISK=${FILE_CACHE_KEEP_ON_DISK:-true}
+      - KG_INGEST_BATCH_SIZE=${KG_INGEST_BATCH_SIZE:-10}
+      - KG_INGEST_DELAY_MS=${KG_INGEST_DELAY_MS:-15000}
     depends_on:
       redis:
         condition: service_healthy

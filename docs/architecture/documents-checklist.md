@@ -28,7 +28,7 @@ This checklist provides exhaustive implementation tasks, grouped into logical ph
 ### 1.1 Core Tables
 
 - [x] **Create `documents` table** ✅
-  - [x] All columns as spec'd (id, owner_id, document_type, etc.) — Note: identity linking is M:N via future `document_identities` table
+  - [x] All columns as spec'd (id, owner_id, document_type, etc.)
   - [x] CHECK constraint on `status` enum values
   - [x] CHECK constraint on `process_status` enum values
   - [x] Default values for `status`, `process_status`, `priority_score`, `process_history`

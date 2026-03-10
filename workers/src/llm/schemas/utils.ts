@@ -46,6 +46,12 @@ function printNode(schema: z.ZodTypeAny, indent = 0): string {
     return `${itemType}[]`;
   }
 
+  if (inner instanceof z.ZodRecord) {
+    const record = inner as z.ZodRecord<z.ZodString, z.ZodTypeAny>;
+    const valueType = printNode(record.valueType, indent);
+    return `Record<string, ${valueType}>`;
+  }
+
   if (inner instanceof z.ZodObject) {
     const obj = inner as z.ZodObject<any>;
     const props = obj.shape;
@@ -72,6 +78,7 @@ function printNode(schema: z.ZodTypeAny, indent = 0): string {
 
       return `${pad}  ${fieldDesc}${pad}  ${key}${isFieldOptional ? "?" : ""}: ${typeStr};`;
     });
+
     return `{\n${lines.join("\n")}\n${pad}}`;
   }
 

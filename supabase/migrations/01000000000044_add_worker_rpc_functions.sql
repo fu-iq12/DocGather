@@ -255,6 +255,7 @@ GRANT EXECUTE ON FUNCTION worker_mark_processing_complete(UUID, TEXT, JSONB, TEX
 -- worker_create_child_document: Create child document for PDF splitting
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION worker_create_child_document(
+  p_child_document_id UUID,
   p_parent_document_id UUID,
   p_owner_id UUID,
   p_page_range JSONB,
@@ -272,8 +273,9 @@ BEGIN
     RAISE EXCEPTION 'Parent document % not found', p_parent_document_id;
   END IF;
 
-  -- Create child document linked to parent
+  -- Create child document linked to parent (using explicit ID with ON CONFLICT)
   INSERT INTO documents (
+    id,
     owner_id,
     parent_document_id,
     page_range,
@@ -282,6 +284,7 @@ BEGIN
     process_status
   )
   VALUES (
+    p_child_document_id,
     p_owner_id,
     p_parent_document_id,
     p_page_range,
@@ -289,14 +292,20 @@ BEGIN
     'queued',
     'pending'
   )
+  ON CONFLICT (id) DO UPDATE SET
+    -- We can safely update status and process_status if this is a retry of the same deterministic split
+    status = EXCLUDED.status,
+    process_status = EXCLUDED.process_status,
+    parent_document_id = EXCLUDED.parent_document_id,
+    page_range = EXCLUDED.page_range
   RETURNING id INTO v_child_id;
 
   RETURN v_child_id;
 END;
 $$;
 
-REVOKE ALL ON FUNCTION worker_create_child_document(UUID, UUID, JSONB, TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION worker_create_child_document(UUID, UUID, JSONB, TEXT) TO service_role;
+REVOKE ALL ON FUNCTION worker_create_child_document(UUID, UUID, UUID, JSONB, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION worker_create_child_document(UUID, UUID, UUID, JSONB, TEXT) TO service_role;
 
 -- -----------------------------------------------------------------------------
 -- worker_increment_llm_billing: Increment stats in the llm_billing JSONB col

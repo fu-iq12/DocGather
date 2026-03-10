@@ -12,6 +12,7 @@
 
 export interface SubtaskInput {
   documentId: string;
+  jobNumber: string;
   ownerId: string;
   /** MIME type from document_files (detected via magic bytes at upload) */
   mimeType: string;

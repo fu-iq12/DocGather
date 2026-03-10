@@ -106,8 +106,6 @@ erDiagram
     documents ||--o{ document_files : "has"
     documents ||--|| document_private : "has"
     documents ||--o{ document_access_log : "logs"
-    documents ||--o{ document_identities : "references"
-    document_identities }o--|| identities : "belongs to"
     document_files ||--|| cloud_sources : "originates from"
 
     documents {
@@ -129,14 +127,6 @@ erDiagram
         timestamptz created_at
         timestamptz updated_at
         timestamptz deleted_at
-    }
-
-    document_identities {
-        uuid id PK
-        uuid document_id FK
-        uuid identity_id FK
-        text role
-        timestamptz created_at
     }
 
     document_files {
@@ -186,7 +176,6 @@ Stores document metadata and processing state.
 create table public.documents (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
-  -- Note: Identity associations are in document_identities table (M:N relationship)
 
   -- Classification
   document_type text, -- 'payslip', 'bank_statement', 'passport', etc.
@@ -1407,8 +1396,7 @@ The envelope encryption approach means key rotation is straightforward:
 | --------------------- | ----------------------------------------------------- | -------------------- |
 | `documents`           | `(status, priority_score DESC) WHERE status='queued'` | Queue processing     |
 | `documents`           | `(owner_id) WHERE deleted_at IS NULL`                 | Owner lookups        |
-| `documents`           | `(identity_id) WHERE deleted_at IS NULL`              | Identity lookups     |
-| `documents`           | `(owner_id, content_hash)` UNIQUE WHERE not null       | Deduplication        |
+| `documents`           | `(owner_id, content_hash)` UNIQUE WHERE not null      | Deduplication        |
 | `document_files`      | `(document_id, file_role)`                            | Role lookup          |
 | `cloud_sources`       | `(source_type, cloud_file_id) WHERE NOT NULL`         | Cloud file tracking  |
 | `document_access_log` | `(document_id, accessed_at DESC)`                     | Document audit trail |

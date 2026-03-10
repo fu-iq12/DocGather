@@ -53,9 +53,15 @@ export class MistralBatchOcr {
   /**
    * Pushes a document request onto the batch queue.
    */
-  execute(document: any, model: string): Promise<OcrPageResult> {
+  execute(
+    document: any,
+    model: string,
+    customId?: string,
+  ): Promise<OcrPageResult> {
     return new Promise<OcrPageResult>((resolve, reject) => {
-      const customId = `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      customId =
+        customId ||
+        `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
       this.queue.push({
         customId,
@@ -149,8 +155,6 @@ export class MistralBatchOcr {
       endpoint: "/v1/ocr",
       requests,
     };
-
-    console.log("batchPayload", batchPayload);
 
     // We CAN wrap this in MistralRateLimiter if we want to be safe about global RPS limits.
     // We will do direct calls for the batch jobs themselves so we don't block the rate limiter queue.

@@ -20,6 +20,7 @@ import {
   encryptFile,
   generateDEK,
   sha256,
+  generateDeterministicDocumentId,
 } from "../_shared/crypto.ts";
 import { buildDocumentPath } from "../_shared/storage.ts";
 import {
@@ -229,8 +230,11 @@ createHandler(async (req: Request) => {
 
   // New document - proceed with encryption and storage
 
-  // Generate new document ID
-  const documentId = crypto.randomUUID();
+  // Generate deterministic document ID based on owner and content byte hash
+  const documentId = await generateDeterministicDocumentId(
+    userId,
+    contentHashHex,
+  );
 
   // Generate DEK and encrypt file
   const dek = generateDEK();
@@ -265,8 +269,8 @@ createHandler(async (req: Request) => {
   const { error: uploadError } = await supabase.storage
     .from("documents")
     .upload(storagePath, encryptedData, {
-      contentType: "application/octet-stream",
-      upsert: false,
+      contentType: mimeType,
+      upsert: true,
     });
 
   if (uploadError) {
