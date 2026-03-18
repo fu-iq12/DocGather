@@ -14,8 +14,8 @@ export const incomeDefinitions: DocumentTypeDefinition[] = [
         employee: z
           .object({
             names: SHARED_ZOD.names.optional(),
-            genders: SHARED_ZOD.genders.optional(),
-            addresses: SHARED_ZOD.addresses.optional(),
+            gender: SHARED_ZOD.gender.optional(),
+            address: SHARED_ZOD.address.optional(),
             birth: SHARED_ZOD.birth.optional(),
             uniqueIdNumber: z
               .string()
@@ -38,15 +38,15 @@ export const incomeDefinitions: DocumentTypeDefinition[] = [
         addressee: z
           .object({
             names: SHARED_ZOD.names.optional(),
-            genders: SHARED_ZOD.genders.optional(),
-            addresses: SHARED_ZOD.addresses.optional(),
+            gender: SHARED_ZOD.gender.optional(),
+            address: SHARED_ZOD.address.optional(),
           })
           .describe("Addressee details."),
         taxpayers: z
           .array(
             z.object({
               names: SHARED_ZOD.names.optional(),
-              genders: SHARED_ZOD.genders.optional(),
+              gender: SHARED_ZOD.gender.optional(),
             }),
           )
           .describe("Taxpayer details. May be more than one."),
@@ -66,8 +66,8 @@ export const incomeDefinitions: DocumentTypeDefinition[] = [
         accountHolder: z
           .object({
             names: SHARED_ZOD.names.optional(),
-            genders: SHARED_ZOD.genders.optional(),
-            addresses: SHARED_ZOD.addresses.optional(),
+            gender: SHARED_ZOD.gender.optional(),
+            address: SHARED_ZOD.address.optional(),
           })
           .describe("Account holder details."),
       })
@@ -85,8 +85,8 @@ export const incomeDefinitions: DocumentTypeDefinition[] = [
         accountHolder: z
           .object({
             names: SHARED_ZOD.names.optional(),
-            genders: SHARED_ZOD.genders.optional(),
-            addresses: SHARED_ZOD.addresses.optional(),
+            gender: SHARED_ZOD.gender.optional(),
+            address: SHARED_ZOD.address.optional(),
           })
           .describe("Account holder details."),
         iban: z.string().describe("IBAN.").optional(),
@@ -108,8 +108,8 @@ export const incomeDefinitions: DocumentTypeDefinition[] = [
         beneficiary: z
           .object({
             names: SHARED_ZOD.names.optional(),
-            genders: SHARED_ZOD.genders.optional(),
-            addresses: SHARED_ZOD.addresses.optional(),
+            gender: SHARED_ZOD.gender.optional(),
+            address: SHARED_ZOD.address.optional(),
           })
           .describe("Beneficiary details."),
         period: SHARED_ZOD.period.optional(),

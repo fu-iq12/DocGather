@@ -18,12 +18,12 @@ export const identityDefinitions: DocumentTypeDefinition[] = [
           .string()
           .describe("Unique personal ID number (e.g. SSN).")
           .optional(),
-        mrz: z.string().describe("Machine Readable Zone text.").optional(),
+        mrz: z.string().describe("Machine Readable Zone text").optional(),
         names: SHARED_ZOD.names.optional(),
-        genders: SHARED_ZOD.genders.optional(),
+        gender: SHARED_ZOD.gender.optional(),
         birth: SHARED_ZOD.birth.optional(),
-        nationality: getCountryAtom("Nationality of the holder.").optional(),
-        addresses: SHARED_ZOD.addresses.optional(),
+        nationality: getCountryAtom("Nationality of the holder").optional(),
+        address: SHARED_ZOD.address.optional(),
         dates: SHARED_ZOD.dates.optional(),
         issuingAuthority: SHARED_ZOD.issuingAuthority.optional(),
         issuingCountry: getCountryAtom(
@@ -39,14 +39,14 @@ export const identityDefinitions: DocumentTypeDefinition[] = [
     schema: z
       .object({
         documentFace: documentFaceSchema.optional(),
-        documentNumber: z.string().describe("Passport number.").optional(),
-        mrz: z.string().describe("MRZ text.").optional(),
+        documentNumber: z.string().describe("Passport number").optional(),
+        mrz: z.string().describe("MRZ text").optional(),
         names: SHARED_ZOD.names.optional(),
-        genders: SHARED_ZOD.genders.optional(),
+        gender: SHARED_ZOD.gender.optional(),
         birth: SHARED_ZOD.birth.optional(),
-        nationality: getCountryAtom("Nationality.").optional(),
+        nationality: getCountryAtom("Nationality").optional(),
         dates: SHARED_ZOD.dates.optional(),
-        issuingCountry: getCountryAtom("Issuing Country.").optional(),
+        issuingCountry: getCountryAtom("Issuing Country").optional(),
         issuingAuthority: SHARED_ZOD.issuingAuthority.optional(),
       })
       .describe("Passport extraction schema"),
@@ -58,12 +58,12 @@ export const identityDefinitions: DocumentTypeDefinition[] = [
     schema: z
       .object({
         documentFace: documentFaceSchema.optional(),
-        permitNumber: z.string().describe("Permit number.").optional(),
-        type: z.string().describe("Type of permit.").optional(),
+        permitNumber: z.string().describe("Permit number").optional(),
+        type: z.string().describe("Type of permit").optional(),
         names: SHARED_ZOD.names.optional(),
-        genders: SHARED_ZOD.genders.optional(),
+        gender: SHARED_ZOD.gender.optional(),
         dates: SHARED_ZOD.dates.optional(),
-        issuingCountry: getCountryAtom("Issuing Country.").optional(),
+        issuingCountry: getCountryAtom("Issuing Country").optional(),
         issuingAuthority: SHARED_ZOD.issuingAuthority.optional(),
       })
       .describe("Residence Permit extraction schema"),
@@ -75,12 +75,12 @@ export const identityDefinitions: DocumentTypeDefinition[] = [
     schema: z
       .object({
         documentFace: documentFaceSchema.optional(),
-        licenseNumber: z.string().describe("License number.").optional(),
+        licenseNumber: z.string().describe("License number").optional(),
         names: SHARED_ZOD.names.optional(),
-        genders: SHARED_ZOD.genders.optional(),
+        gender: SHARED_ZOD.gender.optional(),
         birth: SHARED_ZOD.birth.optional(),
         dates: SHARED_ZOD.dates.optional(),
-        issuingCountry: getCountryAtom("Issuing Country.").optional(),
+        issuingCountry: getCountryAtom("Issuing Country").optional(),
         issuingAuthority: SHARED_ZOD.issuingAuthority.optional(),
       })
       .describe("Driver's License extraction schema"),

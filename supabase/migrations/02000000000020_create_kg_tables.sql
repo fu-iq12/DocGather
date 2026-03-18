@@ -11,9 +11,6 @@ create table public.kg_entities (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
 
-  entity_type text not null
-    check (entity_type in ('individual', 'business', 'non_profit', 'administration')),
-
   is_owner boolean default false,
 
   encrypted_data bytea,
@@ -39,8 +36,8 @@ create table public.kg_relationships (
   source_entity_id uuid not null references public.kg_entities(id) on delete cascade,
   target_entity_id uuid not null references public.kg_entities(id) on delete cascade,
 
-  valid_from date,
-  valid_to date,
+  valid_from text,
+  valid_to text,
 
   encrypted_data bytea,
   master_key_version int not null default 1,

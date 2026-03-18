@@ -14,8 +14,8 @@ export const workDefinitions: DocumentTypeDefinition[] = [
         employee: z
           .object({
             names: SHARED_ZOD.names.optional(),
-            genders: SHARED_ZOD.genders.optional(),
-            addresses: SHARED_ZOD.addresses.optional(),
+            gender: SHARED_ZOD.gender.optional(),
+            address: SHARED_ZOD.address.optional(),
             birth: SHARED_ZOD.birth.optional(),
             uniqueIdNumber: z
               .string()
@@ -39,8 +39,8 @@ export const workDefinitions: DocumentTypeDefinition[] = [
         employee: z
           .object({
             names: SHARED_ZOD.names.optional(),
-            genders: SHARED_ZOD.genders.optional(),
-            addresses: SHARED_ZOD.addresses.optional(),
+            gender: SHARED_ZOD.gender.optional(),
+            address: SHARED_ZOD.address.optional(),
             birth: SHARED_ZOD.birth.optional(),
             uniqueIdNumber: z
               .string()
@@ -75,7 +75,7 @@ export const workDefinitions: DocumentTypeDefinition[] = [
           .string()
           .describe("Legal Form (Forme Juridique).")
           .optional(),
-        addresses: SHARED_ZOD.addresses.optional(),
+        address: SHARED_ZOD.address.optional(),
         dates: SHARED_ZOD.dates.optional(),
       })
       .describe("French Kbis Extract extraction schema"),
@@ -90,7 +90,7 @@ export const workDefinitions: DocumentTypeDefinition[] = [
         student: z
           .object({
             names: SHARED_ZOD.names.optional(),
-            genders: SHARED_ZOD.genders.optional(),
+            gender: SHARED_ZOD.gender.optional(),
             birth: SHARED_ZOD.birth.optional(),
           })
           .describe("Student details."),

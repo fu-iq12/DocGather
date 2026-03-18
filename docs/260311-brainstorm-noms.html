@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brainstorm Noms (2026-03-11)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-color: #0f172a;
+        --text-color: #f8fafc;
+        --muted-text: #94a3b8;
+        --border-color: #334155;
+        --glass-bg: rgba(30, 41, 59, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.1);
+        --primary: #3b82f6;
+        --primary-glow: rgba(59, 130, 246, 0.5);
+
+        /* Status Colors */
+        --status-success-bg: rgba(34, 197, 94, 0.15);
+        --status-success-text: #4ade80;
+        --status-success-border: rgba(34, 197, 94, 0.3);
+
+        --status-warning-bg: rgba(234, 179, 8, 0.15);
+        --status-warning-text: #facc15;
+        --status-warning-border: rgba(234, 179, 8, 0.3);
+
+        --status-danger-bg: rgba(239, 68, 68, 0.15);
+        --status-danger-text: #f87171;
+        --status-danger-border: rgba(239, 68, 68, 0.3);
+
+        --status-critical-bg: rgba(168, 85, 247, 0.15);
+        --status-critical-text: #c084fc;
+        --status-critical-border: rgba(168, 85, 247, 0.3);
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: var(--bg-color);
+        background-image:
+          radial-gradient(
+            circle at 15% 50%,
+            rgba(59, 130, 246, 0.15),
+            transparent 25%
+          ),
+          radial-gradient(
+            circle at 85% 30%,
+            rgba(168, 85, 247, 0.15),
+            transparent 25%
+          );
+        color: var(--text-color);
+        margin: 0;
+        padding: 3rem 1.5rem;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 1300px;
+        width: 100%;
+      }
+
+      header {
+        margin-bottom: 2.5rem;
+        text-align: center;
+        animation: fadeInDown 0.8s ease-out;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem 0;
+        background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -0.025em;
+      }
+
+      p.subtitle {
+        color: var(--muted-text);
+        font-size: 1.1rem;
+        margin: 0;
+      }
+
+      .table-wrapper {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 1px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        overflow-x: auto;
+        animation: fadeInUp 0.8s ease-out 0.2s both;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        text-align: left;
+      }
+
+      th {
+        background-color: rgba(15, 23, 42, 0.6);
+        color: #e2e8f0;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 1.25rem 1.5rem;
+        position: sticky;
+        top: 0;
+        border-bottom: 1px solid var(--glass-border);
+      }
+
+      th:first-child {
+        border-top-left-radius: 15px;
+      }
+      th:last-child {
+        border-top-right-radius: 15px;
+      }
+
+      td {
+        padding: 1.25rem 1.5rem;
+        font-size: 0.95rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        transition: all 0.2s ease;
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+
+      tr:hover td {
+        background-color: rgba(255, 255, 255, 0.03);
+      }
+
+      .nom {
+        font-weight: 600;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .nom-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: var(--primary);
+        box-shadow: 0 0 10px var(--primary-glow);
+      }
+
+      .domain {
+        font-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        font-size: 0.85rem;
+        background: rgba(0, 0, 0, 0.3);
+        padding: 0.3rem 0.6rem;
+        border-radius: 6px;
+        color: #cbd5e1;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        display: inline-block;
+        word-break: break-all;
+      }
+
+      /* Status Badges */
+      .status {
+        display: inline-flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        line-height: 1.4;
+        max-width: 250px;
+      }
+
+      .status-icon {
+        font-size: 1.1rem;
+        flex-shrink: 0;
+        line-height: 1.2;
+      }
+
+      .status-clean {
+        background-color: var(--status-success-bg);
+        color: var(--status-success-text);
+        border: 1px solid var(--status-success-border);
+      }
+
+      .status-warning {
+        background-color: var(--status-warning-bg);
+        color: var(--status-warning-text);
+        border: 1px solid var(--status-warning-border);
+      }
+
+      .status-danger {
+        background-color: var(--status-danger-bg);
+        color: var(--status-danger-text);
+        border: 1px solid var(--status-danger-border);
+      }
+
+      .status-critical {
+        background-color: var(--status-critical-bg);
+        color: var(--status-critical-text);
+        border: 1px solid var(--status-critical-border);
+      }
+
+      .notes {
+        color: var(--muted-text);
+        font-style: italic;
+        font-size: 0.9rem;
+      }
+
+      /* Links styling */
+      a {
+        color: var(--primary);
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      a:hover {
+        color: #60a5fa;
+        text-decoration: underline;
+      }
+
+      /* Animations */
+      @keyframes fadeInDown {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Responsive */
+      @media (max-width: 1024px) {
+        th,
+        td {
+          padding: 1rem;
+        }
+        .status {
+          max-width: 200px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 1.5rem 1rem;
+        }
+        h1 {
+          font-size: 2rem;
+        }
+
+        table {
+          display: block;
+        }
+        thead {
+          display: none;
+        }
+        tbody {
+          display: block;
+          width: 100%;
+        }
+        tr {
+          display: flex;
+          flex-direction: column;
+          padding: 1.5rem;
+          border-bottom: 1px solid var(--glass-border);
+        }
+        td {
+          display: flex;
+          flex-direction: column;
+          padding: 0.5rem 0;
+          border: none;
+        }
+        td::before {
+          content: attr(data-label);
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          color: var(--muted-text);
+          font-weight: 600;
+          margin-bottom: 0.25rem;
+          letter-spacing: 0.05em;
+        }
+        .status {
+          max-width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Brainstorming Noms</h1>
+        <p class="subtitle">
+          Analyse et disponibilité des noms de domaine • 11 Mars 2026
+        </p>
+      </header>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Domaines disponibles</th>
+              <th>Google Search</th>
+              <th>Juridique / Marque</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Row 1 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  DeMeta
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">demeta.(fr/eu/app/ai/pro)</span>
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span><span>clean</span>
+                </div>
+              </td>
+              <td data-label="Juridique">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span><span>clean</span>
+                </div>
+              </td>
+              <td data-label="Notes">
+                <span class="notes"
+                  >j'ai déjà oublié ce que ça voulait dire 😅</span
+                >
+              </td>
+            </tr>
+
+            <!-- Row 2 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  MetaDem
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">metadem.(eu/app/ai/pro)</span><br /><span
+                  class="domain"
+                  style="margin-top: 4px"
+                  >metadem.com (3000$)</span
+                >
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span><span>clean</span>
+                </div>
+              </td>
+              <td data-label="Juridique">
+                <div class="status status-warning">
+                  <span class="status-icon">⚠️</span
+                  ><span>METADEM (traitement des coliques rénales)</span>
+                </div>
+              </td>
+              <td data-label="Notes">
+                <span class="notes"
+                  >suffixe dem = démission plutôt que démarches</span
+                >
+              </td>
+            </tr>
+
+            <!-- Row 3 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  DocMeta
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">docmeta.(eu/app/ai/pro)</span><br /><span
+                  class="domain"
+                  style="margin-top: 4px"
+                  >docmeta.com (4000$)</span
+                >
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span><span>clean</span>
+                </div>
+              </td>
+              <td data-label="Juridique">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span><span>clean</span>
+                </div>
+              </td>
+              <td data-label="Notes"></td>
+            </tr>
+
+            <!-- Row 4 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  paper.as
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">paper.as</span><br /><span
+                  class="domain"
+                  style="margin-top: 4px"
+                  >paperas.(eu/ai/app/io/pro)</span
+                >
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-critical">
+                  <span class="status-icon">☢️</span
+                  ><span
+                    >remonte Paperasse (paperas.se) et de nombreux articles y
+                    faisant reference</span
+                  >
+                </div>
+              </td>
+              <td data-label="Juridique">
+                <div class="status status-critical">
+                  <span class="status-icon">☢️</span
+                  ><span>Paperasse (paperas.se) &rarr; concurrent direct</span>
+                </div>
+              </td>
+              <td data-label="Notes"></td>
+            </tr>
+
+            <!-- Row 5 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  Papyris
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">papyris.(fr/eu/ai/pro)</span><br /><span
+                  class="domain"
+                  style="margin-top: 4px"
+                  >papyris.com (1888$)</span
+                >
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-danger">
+                  <span class="status-icon">❌</span
+                  ><span>autocorrect en papyrus</span>
+                </div>
+              </td>
+              <td data-label="Juridique">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span><span>clean</span>
+                </div>
+              </td>
+              <td data-label="Notes"></td>
+            </tr>
+
+            <!-- Row 6 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  Paperix
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">paperix.(fr/eu/app/ai/pro)</span
+                ><br /><span class="domain" style="margin-top: 4px"
+                  >paperix.com (1100&euro;)</span
+                >
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-warning">
+                  <span class="status-icon">⚠️</span
+                  ><span>paperix.mx shop en ligne mexicain</span>
+                </div>
+              </td>
+              <td data-label="Juridique"></td>
+              <td data-label="Notes"></td>
+            </tr>
+
+            <!-- Row 7 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  GlaDoc
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">gladoc.(fr/eu/app/ai/pro)</span>
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span
+                  ><span>remonte surtout du "Geladoc"</span>
+                </div>
+              </td>
+              <td data-label="Juridique">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span
+                  ><span>clean (produit anti-gel)</span>
+                </div>
+              </td>
+              <td data-label="Notes"></td>
+            </tr>
+
+            <!-- Row 8 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  HapDoc
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">hapdoc.(fr/eu/app/ai/pro)</span>
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-warning">
+                  <span class="status-icon">⚠️</span
+                  ><span>HapDoc.com (plateforme pour medecins en Inde)</span>
+                </div>
+              </td>
+              <td data-label="Juridique">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span
+                  ><span>clean (pas le même secteur)</span>
+                </div>
+              </td>
+              <td data-label="Notes"></td>
+            </tr>
+
+            <!-- Row 9 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  EasyDem
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">easydem.(eu/app/ai/pro)</span>
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-warning">
+                  <span class="status-icon">⚠️</span
+                  ><span
+                    >easydem.com (L'Expert du déménagement) + Easy DEM
+                    (application)</span
+                  >
+                </div>
+              </td>
+              <td data-label="Juridique">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span
+                  ><span>clean (pas le même secteur)</span>
+                </div>
+              </td>
+              <td data-label="Notes">
+                <span class="notes"
+                  >suffixe dem = démission plutôt que démarches</span
+                >
+              </td>
+            </tr>
+
+            <!-- Row 10 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  CaraDoc
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">caradoc.(eu/app/ai/pro)</span>
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-warning">
+                  <span class="status-icon">⚠️</span
+                  ><span>caradoc.fr (Clinique)</span>
+                </div>
+              </td>
+              <td data-label="Juridique">
+                <div class="status status-warning">
+                  <span class="status-icon">⚠️</span
+                  ><span
+                    >un projet IA documentaire dur à trouver (<a
+                      href="https://gitlab.adullact.net/dgfip/projets-ia/caradoc"
+                      target="_blank"
+                      >lien</a
+                    >)</span
+                  >
+                </div>
+              </td>
+              <td data-label="Notes"></td>
+            </tr>
+
+            <!-- Row 11 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  DocPulse
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">docpul.se</span><br /><span
+                  class="domain"
+                  style="margin-top: 4px"
+                  >docpulse.(fr/eu/app/ai/pro)</span
+                >
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-warning">
+                  <span class="status-icon">⚠️</span
+                  ><span>DocPulse.com (SaaS pour hopitaux en Inde)</span>
+                </div>
+              </td>
+              <td data-label="Juridique">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span
+                  ><span>clean (pas le même secteur)</span>
+                </div>
+              </td>
+              <td data-label="Notes"></td>
+            </tr>
+
+            <!-- Row 12 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  Doccy
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">doccy.(eu/net/pro)</span>
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-warning">
+                  <span class="status-icon">⚠️</span
+                  ><span>Doccy.com (SaaS pour hopitaux en Inde)</span>
+                </div>
+              </td>
+              <td data-label="Juridique">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span
+                  ><span>clean (pas le même secteur)</span>
+                </div>
+              </td>
+              <td data-label="Notes"></td>
+            </tr>
+
+            <!-- Row 13 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  DocSpace
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">docspace.fr (pas d'alts)</span>
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-warning">
+                  <span class="status-icon">⚠️</span
+                  ><span>ONLYOFFICE DocSpace (partage de documents)</span>
+                </div>
+              </td>
+              <td data-label="Juridique">
+                <div class="status status-warning">
+                  <span class="status-icon">⚠️</span
+                  ><span
+                    >ONLYOFFICE DocSpace (secteur proche, assez connu)</span
+                  >
+                </div>
+              </td>
+              <td data-label="Notes"></td>
+            </tr>
+
+            <!-- Row 14 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  DocSpice
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">docspice.(fr/eu/app/ai/pro)</span>
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-warning">
+                  <span class="status-icon">⚠️</span
+                  ><span>DocSpice.com (SaaS pour hopitaux en Inde)</span>
+                </div>
+              </td>
+              <td data-label="Juridique">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span
+                  ><span>clean (pas le même secteur)</span>
+                </div>
+              </td>
+              <td data-label="Notes"></td>
+            </tr>
+
+            <!-- Row 15 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  DocSpice
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">docspice.(fr/eu/app/ai/pro)</span
+                ><br /><span class="domain" style="margin-top: 4px"
+                  >docspice.com (3000&euro;)</span
+                >
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-warning">
+                  <span class="status-icon">⚠️</span
+                  ><span>DocSpice.life (permaculture)</span>
+                </div>
+              </td>
+              <td data-label="Juridique">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span
+                  ><span>clean (pas le même secteur)</span>
+                </div>
+              </td>
+              <td data-label="Notes"></td>
+            </tr>
+
+            <!-- Row 16 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  DocPool
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">docpool.(fr/app/ai/pro)</span>
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span><span>assez clean</span>
+                </div>
+              </td>
+              <td data-label="Juridique">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span><span>clean</span>
+                </div>
+              </td>
+              <td data-label="Notes"></td>
+            </tr>
+
+            <!-- Row 17 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  ezdoc
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">ezdoc.(tech)</span>
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-critical">
+                  <span class="status-icon">☢️</span
+                  ><span>plein de produits existants</span>
+                </div>
+              </td>
+              <td data-label="Juridique">
+                <div class="status status-critical">
+                  <span class="status-icon">☢️</span
+                  ><span>ezdoc.fr (SaaS de mailing)</span>
+                </div>
+              </td>
+              <td data-label="Notes"></td>
+            </tr>
+
+            <!-- Row 18 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  DocSprint
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">docsprint.(eu/ai/app)</span>
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-warning">
+                  <span class="status-icon">⚠️</span
+                  ><span
+                    >docprint.fr (dossier médical)<br />docsprint.ch (CMS)<br />Atlassian
+                    Doc Sprint</span
+                  >
+                </div>
+              </td>
+              <td data-label="Juridique">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span><span>plutôt clean</span>
+                </div>
+              </td>
+              <td data-label="Notes"></td>
+            </tr>
+
+            <!-- Row 19 -->
+            <tr>
+              <td data-label="Nom">
+                <div class="nom">
+                  <div class="nom-dot"></div>
+                  DocPurple
+                </div>
+              </td>
+              <td data-label="Domaines">
+                <span class="domain">docpurple.(fr/eu/app/ai/pro)</span>
+              </td>
+              <td data-label="Google Search">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span><span>clean</span>
+                </div>
+              </td>
+              <td data-label="Juridique">
+                <div class="status status-clean">
+                  <span class="status-icon">✅</span><span>clean</span>
+                </div>
+              </td>
+              <td data-label="Notes"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>

@@ -7,6 +7,7 @@ import {
   ensureOwnerEntity,
   applyKgMutations,
   logKgBatchError,
+  countPendingKgDocuments,
 } from "../supabase.js";
 import { kgMutationSchema } from "../llm/schemas/kg.js";
 import { KG_SYSTEM_PROMPT } from "../llm/prompts/kg.js";
@@ -34,8 +35,17 @@ export async function processKgBatch(job: Job) {
     `[KgWorker] Processing ${docs.length} docs for ${ownerId} (batch ${job.id})`,
   );
 
+  // 2. Orchestrator Batch Estimation Maintenance
+  // The `job.data.documentIds` array is used by the orchestrator to estimate when the batch
+  // is full and promote the delayed job immediately. We prune the IDs we are processing now
+  // so the orchestrator's length check remains accurate for subsequent documents.
+  job.data.documentIds = job.data.documentIds.filter(
+    (id: string) => !documentIds.includes(id),
+  );
+  await job.updateData(job.data);
+
   try {
-    // 2. Context Assembly
+    // 3. Context Assembly
     await ensureOwnerEntity(ownerId);
     const currentGraph = await getKnowledgeGraph(ownerId);
 
@@ -44,7 +54,7 @@ export async function processKgBatch(job: Job) {
       document_id: d.document_id,
       document_type: d.document_type,
       document_date: d.document_date,
-      extracted_data: d.extracted_data,
+      extracted_data: d.extracted_data?.normalized,
     }));
 
     const context = {
@@ -54,7 +64,7 @@ export async function processKgBatch(job: Job) {
 
     const promptText = `CONTEXT:\n${JSON.stringify(context, null, 2)}`;
 
-    // 3. Request LLM Mutations
+    // 4. Request LLM Mutations
     const client = new LLMClient();
     const chatOptions = {
       responseFormat: { type: "json_object" as const },
@@ -78,6 +88,10 @@ export async function processKgBatch(job: Job) {
 
         // Ensure schema compliance. If invalid, throws ZodError.
         parsed = kgMutationSchema.parse(rawJson);
+        console.log(
+          "[DEBUG] Parsed KG mutations: ",
+          JSON.stringify(parsed, null, 2),
+        );
         break; // Success
       } catch (err) {
         if (attempt < MAX_PARSE_ATTEMPTS) {
@@ -97,7 +111,7 @@ export async function processKgBatch(job: Job) {
       }
     }
 
-    // 4. Apply DB Mutations ACID Transaction
+    // 5. Apply DB Mutations ACID Transaction
     // Use parsed.mutations and parsed.attributions directly
     const stats = await applyKgMutations(
       ownerId,
@@ -110,7 +124,15 @@ export async function processKgBatch(job: Job) {
       `[KgWorker] Successfully mapped batch ${job.id} for ${ownerId}. Stats: ${JSON.stringify(stats)}`,
     );
 
-    return stats;
+    // 6. Check for remaining work to instruct the event handler to re-queue
+    const remainingCount = await countPendingKgDocuments(ownerId);
+    return {
+      ...stats,
+      _requeue:
+        remainingCount > 0
+          ? { ownerId, documentIds: job.data.documentIds, remainingCount }
+          : null,
+    };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`[KgWorker] Batch error for ${ownerId}: ${errorMsg}`);
@@ -127,9 +149,38 @@ export const kgWorker = new Worker("kg-ingestion", processKgBatch, {
   concurrency: 5, // external service, high concurrency possible
 });
 
-kgWorker.on("completed", (job) =>
-  console.log(`[KgWorker] Job ${job.id} completed.`),
-);
+kgWorker.on("completed", async (job, result) => {
+  console.log(`[KgWorker] Job ${job.id} completed.`);
+
+  if (result?._requeue) {
+    try {
+      const { ownerId, documentIds, remainingCount } = result._requeue;
+      const batchSize = parseInt(process.env.KG_INGEST_BATCH_SIZE || "10");
+      const delay =
+        remainingCount >= batchSize
+          ? 0
+          : parseInt(process.env.KG_INGEST_DELAY_MS || "15000", 10);
+
+      const { kgIngestionQueue } = await import("../queues.js");
+      await kgIngestionQueue.add(
+        "kg-ingest",
+        { ownerId, documentIds },
+        {
+          jobId: `${ownerId}-kg-batch`,
+          delay,
+        },
+      );
+      console.log(
+        `[KgWorker] Re-queued for ${ownerId} (${remainingCount} pending, delay=${delay}ms)`,
+      );
+    } catch (err) {
+      console.error(
+        `[KgWorker] Failed to re-queue job for ${result._requeue.ownerId}`,
+        err,
+      );
+    }
+  }
+});
 kgWorker.on("failed", (job, err) =>
   console.error(`[KgWorker] Job ${job?.id} failed:`, err.message),
 );

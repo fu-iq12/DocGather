@@ -167,14 +167,12 @@ begin
   if v_id is null then
     insert into public.kg_entities (
       owner_id, 
-      entity_type, 
       is_owner, 
       encrypted_data, 
       master_key_version
     )
     values (
       p_owner_id,
-      'individual',
       true,
       public.encrypt_jsonb('{}'::jsonb),
       public.get_current_master_key_version()
@@ -212,7 +210,6 @@ declare
   v_relationships_updated int := 0;
   v_relationships_closed int := 0;
   v_attributions_added int := 0;
-  v_skipped_confirmed int := 0;
 
   v_record jsonb;
   v_temp_id_map jsonb := '{}'::jsonb;
@@ -221,142 +218,112 @@ declare
   v_target_id uuid;
   v_source_id uuid;
 
-  v_current_data jsonb;
-  v_changes jsonb;
   v_merged jsonb;
-  v_key text;
   v_val jsonb;
-  
   v_path text;
-  v_has_override boolean;
+  v_path_keys text[];  
+  v_override record;
 begin
   v_master_key_version := public.get_current_master_key_version();
 
-  -- 1. Insert new entities
-  if p_mutations ? 'entities_to_add' then
-    for v_record in select * from jsonb_array_elements(p_mutations->'entities_to_add') loop
-      v_new_uuid := gen_random_uuid();
-      v_temp_id_map := jsonb_set(v_temp_id_map, array[v_record->>'temp_id'], to_jsonb(v_new_uuid));
+  if p_mutations ? 'entities' then
+    for v_record in select * from jsonb_array_elements(p_mutations->'entities') loop
 
-      insert into public.kg_entities (id, owner_id, entity_type, encrypted_data, master_key_version)
-      values (v_new_uuid, p_owner_id, v_record->>'type', public.encrypt_jsonb(coalesce(v_record->'data', '{}'::jsonb), v_master_key_version), v_master_key_version);
-      
-      v_entities_added := v_entities_added + 1;
+      begin
+        -- 1. Update existing entities when id is an existing uuid
+        raise log '1. Update existing entities when id is an existing uuid';
+
+        v_target_id := (v_record->>'id')::uuid;
+
+        v_merged := coalesce(v_record->'data', '{}'::jsonb);
+        for v_override in select * from public.kg_confirmed_overrides where target_type = 'entity' and target_id = v_target_id loop
+          v_path := regexp_replace(v_override->>'json_path', '^\$\.', '');
+          v_path_keys := ('{' || regexp_replace(v_path, '\.', ',', 'g') || '}')::text[];
+          v_merged := jsonb_set(v_merged, v_path_keys, v_override->'confirmed_value', true);
+        end loop;
+
+        update public.kg_entities 
+        set encrypted_data = public.encrypt_jsonb(v_merged, v_master_key_version)
+        where id = (v_record->>'id')::uuid;
+
+        v_entities_updated := v_entities_updated + 1;
+
+      exception when invalid_text_representation then
+        -- 2. Insert new entities when id is a temp_id
+        raise log '2. Insert new entities when id is a temp_id';
+
+        v_new_uuid := gen_random_uuid();
+        v_temp_id_map := jsonb_set(v_temp_id_map, array[v_record->>'id'], to_jsonb(v_new_uuid));
+
+        insert into public.kg_entities (id, owner_id, encrypted_data, master_key_version)
+        values (v_new_uuid, p_owner_id, public.encrypt_jsonb(coalesce(v_record->'data', '{}'::jsonb), v_master_key_version), v_master_key_version);
+        
+        v_entities_added := v_entities_added + 1;
+      end;
+
     end loop;
   end if;
 
-  -- 2. Update existing entities (skipping confirmed)
-  if p_mutations ? 'entities_to_update' then
-    for v_record in select * from jsonb_array_elements(p_mutations->'entities_to_update') loop
+  if p_mutations ? 'relationships' then
+    for v_record in select * from jsonb_array_elements(p_mutations->'relationships') loop
+
+      begin
+        -- 1. Update existing relationships when id is an existing uuid
+        raise log '3. Update existing relationships when id is an existing uuid';
+
+        v_target_id := (v_record->>'id')::uuid;
+
+        v_merged := coalesce(v_record->'data', '{}'::jsonb);
+        for v_override in select * from public.kg_confirmed_overrides where target_type = 'relationship' and target_id = v_target_id loop
+          v_path := regexp_replace(v_override->>'json_path', '^\$\.', '');
+          v_path_keys := ('{' || regexp_replace(v_path, '\.', ',', 'g') || '}')::text[];
+          v_merged := jsonb_set(v_merged, v_path_keys, v_override->'confirmed_value', true);
+        end loop;
+
+        update public.kg_relationships 
+        set encrypted_data = public.encrypt_jsonb(v_merged, v_master_key_version),
+            valid_from = least(v_record->>'valid_from', valid_from),
+            valid_to = greatest(v_record->>'valid_to', valid_to)
+        where id = (v_record->>'id')::uuid;
+
+        v_relationships_updated := v_relationships_updated + 1;
+
+      exception when invalid_text_representation then
+        -- 4. Insert new relationships when id is a temp_id
+        raise log '4. Insert new relationships when id is a temp_id';
+
+        v_new_uuid := gen_random_uuid();
+        v_temp_id_map := jsonb_set(v_temp_id_map, array[v_record->>'id'], to_jsonb(v_new_uuid));
       
-      select data into v_current_data from public.kg_entities_decoded where id = (v_record->>'id')::uuid and owner_id = p_owner_id;
-      if v_current_data is null then continue; end if;
-
-      v_merged := v_current_data;
-      v_changes := coalesce(v_record->'field_changes', '{}'::jsonb);
-
-      for v_key, v_val in select * from jsonb_each(v_changes) loop
-        v_path := '$.' || v_key;
-
-        select exists(
-          select 1 from public.kg_confirmed_overrides
-          where target_type = 'entity' and target_id = (v_record->>'id')::uuid and json_path = v_path
-        ) into v_has_override;
-
-        if v_has_override then
-          v_skipped_confirmed := v_skipped_confirmed + 1;
+        if v_temp_id_map ? (v_record->>'source') then
+          v_source_id := (v_temp_id_map->>(v_record->>'source'))::uuid;
         else
-          if v_val->>'action' = 'set' then
-            v_merged := jsonb_set(v_merged, array[v_key], v_val->'value', true);
-          end if;
+          v_source_id := (v_record->>'source')::uuid;
         end if;
-      end loop;
 
-      update public.kg_entities 
-      set encrypted_data = public.encrypt_jsonb(v_merged, v_master_key_version)
-      where id = (v_record->>'id')::uuid;
-
-      v_entities_updated := v_entities_updated + 1;
-    end loop;
-  end if;
-
-  -- 3. Insert new relationships
-  if p_mutations ? 'relationships_to_add' then
-    for v_record in select * from jsonb_array_elements(p_mutations->'relationships_to_add') loop
-      v_new_uuid := gen_random_uuid();
-      v_temp_id_map := jsonb_set(v_temp_id_map, array[v_record->>'temp_id'], to_jsonb(v_new_uuid));
-      
-      if v_temp_id_map ? (v_record->>'source') then
-        v_source_id := (v_temp_id_map->>(v_record->>'source'))::uuid;
-      else
-        v_source_id := (v_record->>'source')::uuid;
-      end if;
-
-      if v_temp_id_map ? (v_record->>'target') then
-        v_target_id := (v_temp_id_map->>(v_record->>'target'))::uuid;
-      else
-        v_target_id := (v_record->>'target')::uuid;
-      end if;
-
-      insert into public.kg_relationships (
-        id, owner_id, relationship_type, source_entity_id, target_entity_id, valid_from, encrypted_data, master_key_version
-      )
-      values (
-        v_new_uuid, p_owner_id, v_record->>'type', v_source_id, v_target_id, (v_record->>'valid_from')::date,
-        public.encrypt_jsonb(coalesce(v_record->'data', '{}'::jsonb), v_master_key_version), v_master_key_version
-      );
-      
-      v_relationships_added := v_relationships_added + 1;
-    end loop;
-  end if;
-
-  -- 4. Update existing relationships
-  if p_mutations ? 'relationships_to_update' then
-    for v_record in select * from jsonb_array_elements(p_mutations->'relationships_to_update') loop
-      
-      select data into v_current_data from public.kg_relationships_decoded where id = (v_record->>'id')::uuid and owner_id = p_owner_id;
-      if v_current_data is null then continue; end if;
-
-      v_merged := v_current_data;
-      v_changes := coalesce(v_record->'field_changes', '{}'::jsonb);
-
-      for v_key, v_val in select * from jsonb_each(v_changes) loop
-        v_path := '$.' || v_key;
-
-        select exists(
-          select 1 from public.kg_confirmed_overrides
-          where target_type = 'relationship' and target_id = (v_record->>'id')::uuid and json_path = v_path
-        ) into v_has_override;
-
-        if v_has_override then
-          v_skipped_confirmed := v_skipped_confirmed + 1;
+        if v_temp_id_map ? (v_record->>'target') then
+          v_target_id := (v_temp_id_map->>(v_record->>'target'))::uuid;
         else
-          if v_val->>'action' = 'set' then
-            v_merged := jsonb_set(v_merged, array[replace(v_key, 'data.', '')], v_val->'value', true);
-          end if;
+          v_target_id := (v_record->>'target')::uuid;
         end if;
-      end loop;
 
-      update public.kg_relationships 
-      set encrypted_data = public.encrypt_jsonb(v_merged, v_master_key_version)
-      where id = (v_record->>'id')::uuid;
+        insert into public.kg_relationships (
+          id, owner_id, relationship_type, source_entity_id, target_entity_id, valid_from, valid_to, encrypted_data, master_key_version
+        )
+        values (
+          v_new_uuid, p_owner_id, v_record->>'type', v_source_id, v_target_id, v_record->>'valid_from', v_record->>'valid_to',
+          public.encrypt_jsonb(coalesce(v_record->'data', '{}'::jsonb), v_master_key_version), v_master_key_version
+        );
+        
+        v_relationships_added := v_relationships_added + 1;
+      end;
 
-      v_relationships_updated := v_relationships_updated + 1;
-    end loop;
-  end if;
-  
-  -- 5. Close relationships
-  if p_mutations ? 'relationships_to_close' then
-    for v_record in select * from jsonb_array_elements(p_mutations->'relationships_to_close') loop
-      update public.kg_relationships 
-      set valid_to = (v_record->>'valid_to')::date
-      where id = (v_record->>'id')::uuid and owner_id = p_owner_id;
-      
-      v_relationships_closed := v_relationships_closed + 1;
     end loop;
   end if;
 
-  -- 6. Insert attributions
+  -- 5. Insert attributions
+  raise log '5. Insert attributions';
+
   for v_record in select * from jsonb_array_elements(p_attributions) loop
     for v_val in select * from jsonb_array_elements(v_record->'targets') loop
       
@@ -376,14 +343,18 @@ begin
     end loop;
   end loop;
 
-  -- 7. Audit Logging
+  -- 6. Audit Logging
+  raise log '6. Audit Logging';
+
   insert into public.kg_mutation_log (
     owner_id, mutations_applied, raw_llm_response, documents_in_batch
   ) values (
     p_owner_id, p_mutations, p_raw_llm_response, to_jsonb(p_document_ids)
   );
+
+  -- 7. Finalize batch synchronization (Option 3 Postgres Batching)
+  raise log '7. Finalize batch synchronization';
   
-  -- 8. Finalize batch synchronization (Option 3 Postgres Batching)
   update public.documents
   set 
     kg_sync_status = 'synced',
@@ -396,8 +367,7 @@ begin
     'relationships_added', v_relationships_added,
     'relationships_updated', v_relationships_updated,
     'relationships_closed', v_relationships_closed,
-    'attributions_added', v_attributions_added,
-    'skipped_confirmed', v_skipped_confirmed
+    'attributions_added', v_attributions_added
   );
 end;
 $$;
@@ -437,3 +407,24 @@ $$;
 
 revoke all on function worker_kg_log_batch_error(uuid, uuid[], text) from public, anon, authenticated;
 grant execute on function worker_kg_log_batch_error(uuid, uuid[], text) to service_role;
+
+-- -----------------------------------------------------------------------------
+-- worker_kg_count_pending_documents: Count remaining documents for an owner
+-- -----------------------------------------------------------------------------
+create or replace function worker_kg_count_pending_documents(
+  p_owner_id uuid
+)
+returns integer
+language sql
+security definer
+stable
+as $$
+  select count(*)::integer
+  from public.documents
+  where owner_id = p_owner_id
+    and kg_sync_status = 'pending'
+    and deleted_at is null;
+$$;
+
+revoke all on function worker_kg_count_pending_documents(uuid) from public, anon, authenticated;
+grant execute on function worker_kg_count_pending_documents(uuid) to service_role;

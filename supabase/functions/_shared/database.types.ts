@@ -399,7 +399,6 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           encrypted_data: string | null
-          entity_type: string
           id: string
           is_owner: boolean | null
           master_key_version: number
@@ -410,7 +409,6 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           encrypted_data?: string | null
-          entity_type: string
           id?: string
           is_owner?: boolean | null
           master_key_version?: number
@@ -421,7 +419,6 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           encrypted_data?: string | null
-          entity_type?: string
           id?: string
           is_owner?: boolean | null
           master_key_version?: number
@@ -609,7 +606,6 @@ export type Database = {
           created_at: string | null
           data: Json | null
           deleted_at: string | null
-          entity_type: string | null
           id: string | null
           is_owner: boolean | null
           master_key_version: number | null
@@ -620,7 +616,6 @@ export type Database = {
           created_at?: string | null
           data?: never
           deleted_at?: string | null
-          entity_type?: string | null
           id?: string | null
           is_owner?: boolean | null
           master_key_version?: number | null
@@ -631,7 +626,6 @@ export type Database = {
           created_at?: string | null
           data?: never
           deleted_at?: string | null
-          entity_type?: string | null
           id?: string | null
           is_owner?: boolean | null
           master_key_version?: number | null

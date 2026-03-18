@@ -656,14 +656,19 @@ export const orchestratorProcessor = async (job: Job, token?: string) => {
       const debounceJobId = `${input.ownerId}-kg-batch`;
 
       let job = await kgIngestionQueue.getJob(debounceJobId);
+      let documentIds = [];
       if (job && ((await job.isCompleted()) || (await job.isFailed()))) {
+        documentIds = job.data.documentIds;
         await job.remove();
         job = undefined;
       }
 
       job = await kgIngestionQueue.add(
         "kg-ingest",
-        { ownerId: input.ownerId, documentIds: [input.documentId] },
+        {
+          ownerId: input.ownerId,
+          documentIds: [...documentIds, input.documentId],
+        },
         {
           jobId: debounceJobId, // Debounce key
           delay: parseInt(process.env.KG_INGEST_DELAY_MS || "15000", 10), // Wait to allow multiple concurrent documents to accumulate in Postgres

@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   ensureOwnerEntity: vi.fn(),
   applyKgMutations: vi.fn(),
   logKgBatchError: vi.fn(),
+  countPendingKgDocuments: vi.fn(),
 }));
 
 // Mock LLMClient
@@ -32,6 +33,8 @@ vi.mock("../supabase.js", () => ({
   ensureOwnerEntity: (...args: unknown[]) => mocks.ensureOwnerEntity(...args),
   applyKgMutations: (...args: unknown[]) => mocks.applyKgMutations(...args),
   logKgBatchError: (...args: unknown[]) => mocks.logKgBatchError(...args),
+  countPendingKgDocuments: (...args: unknown[]) =>
+    mocks.countPendingKgDocuments(...args), // Added
 }));
 
 // Mock queues / connection
@@ -63,6 +66,7 @@ describe("kg-worker", () => {
     mocks.ensureOwnerEntity.mockReset();
     mocks.applyKgMutations.mockReset();
     mocks.logKgBatchError.mockReset();
+    mocks.countPendingKgDocuments.mockReset();
     mocks.chat.mockReset();
 
     // Assign the imported function so tests can use it
@@ -81,6 +85,7 @@ describe("kg-worker", () => {
       entities_updated: 0,
     });
     mocks.logKgBatchError.mockResolvedValue(undefined);
+    mocks.countPendingKgDocuments.mockResolvedValue(0); // Added
     mocks.chat.mockResolvedValue({ content: "{}" });
 
     // Since processKgBatch is not exported, we need to get it via the vi.mock factory's captured arguments,
@@ -102,7 +107,11 @@ describe("kg-worker", () => {
     });
 
     it("should process docs, call LLM, and apply mutations", async () => {
-      const job = { data: { ownerId: "owner-1" }, id: "batch-1" } as any;
+      const job = {
+        data: { ownerId: "owner-1", documentIds: ["doc-1"] },
+        id: "batch-1",
+        updateData: vi.fn(),
+      } as any;
       mocks.getPendingKgDocuments
         .mockResolvedValueOnce([
           {
@@ -116,11 +125,8 @@ describe("kg-worker", () => {
 
       const mockLlmResponse = {
         mutations: {
-          entities_to_add: [],
-          entities_to_update: [],
-          relationships_to_add: [],
-          relationships_to_update: [],
-          relationships_to_close: [],
+          entities: [],
+          relationships: [],
         },
         attributions: [],
         reasoning: "Test valid response",
@@ -145,7 +151,11 @@ describe("kg-worker", () => {
     });
 
     it("should retry LLM if schema validation fails", async () => {
-      const job = { data: { ownerId: "owner-1" }, id: "batch-1" } as any;
+      const job = {
+        data: { ownerId: "owner-1", documentIds: ["doc-1"] },
+        id: "batch-1",
+        updateData: vi.fn(),
+      } as any;
       mocks.getPendingKgDocuments
         .mockResolvedValueOnce([
           { document_id: "doc-1", document_type: "invoice" },
@@ -154,11 +164,8 @@ describe("kg-worker", () => {
 
       const mockValidLlmResponse = {
         mutations: {
-          entities_to_add: [],
-          entities_to_update: [],
-          relationships_to_add: [],
-          relationships_to_update: [],
-          relationships_to_close: [],
+          entities: [],
+          relationships: [],
         },
         attributions: [],
         reasoning: "Valid on second try",
@@ -188,7 +195,11 @@ describe("kg-worker", () => {
     });
 
     it("should fallback and log error if LLM fails 3 times", async () => {
-      const job = { data: { ownerId: "owner-1" }, id: "batch-1" } as any;
+      const job = {
+        data: { ownerId: "owner-1", documentIds: ["doc-1"] },
+        id: "batch-1",
+        updateData: vi.fn(),
+      } as any;
       mocks.getPendingKgDocuments.mockResolvedValueOnce([
         { document_id: "doc-1", document_type: "invoice" },
       ]); // No need to mock 2nd loop because it will throw
@@ -207,6 +218,113 @@ describe("kg-worker", () => {
         ["doc-1"],
         expect.any(String),
       );
+    });
+
+    it("should re-queue immediately when remaining docs >= batch size", async () => {
+      const job = {
+        data: { ownerId: "owner-1", documentIds: ["acc-1"] },
+        id: "batch-1",
+        updateData: vi.fn(),
+      } as any;
+      mocks.getPendingKgDocuments
+        .mockResolvedValueOnce([
+          { document_id: "doc-1", document_type: "invoice" },
+        ])
+        .mockResolvedValueOnce([]); // Break loop
+
+      const mockValidLlmResponse = {
+        mutations: {
+          entities: [],
+          relationships: [],
+        },
+        attributions: [],
+        reasoning: "Valid",
+      };
+
+      mocks.chat.mockResolvedValueOnce({
+        content: JSON.stringify(mockValidLlmResponse),
+      });
+
+      // Simulate 12 remaining docs (>= default batchSize of 10)
+      mocks.countPendingKgDocuments.mockResolvedValueOnce(12);
+
+      const result = await processKgBatch(job);
+
+      expect(result._requeue).toEqual({
+        ownerId: "owner-1",
+        documentIds: ["acc-1"], // keeps accumulator untouched
+        remainingCount: 12,
+      });
+    });
+
+    it("should re-queue with delay when remaining docs < batch size but > 0", async () => {
+      const job = {
+        data: { ownerId: "owner-1", documentIds: ["acc-1"] },
+        id: "batch-1",
+        updateData: vi.fn(),
+      } as any;
+      mocks.getPendingKgDocuments
+        .mockResolvedValueOnce([
+          { document_id: "doc-1", document_type: "invoice" },
+        ])
+        .mockResolvedValueOnce([]); // Break loop
+
+      const mockValidLlmResponse = {
+        mutations: {
+          entities: [],
+          relationships: [],
+        },
+        attributions: [],
+        reasoning: "Valid",
+      };
+
+      mocks.chat.mockResolvedValueOnce({
+        content: JSON.stringify(mockValidLlmResponse),
+      });
+
+      // Simulate 3 remaining docs (< batchSize of 10)
+      mocks.countPendingKgDocuments.mockResolvedValueOnce(3);
+
+      const result = await processKgBatch(job);
+
+      expect(result._requeue).toEqual({
+        ownerId: "owner-1",
+        documentIds: ["acc-1"], // keeps accumulator untouched
+        remainingCount: 3,
+      });
+    });
+
+    it("should not re-queue when no remaining docs", async () => {
+      const job = {
+        data: { ownerId: "owner-1", documentIds: ["acc-1"] },
+        id: "batch-1",
+        updateData: vi.fn(),
+      } as any;
+      mocks.getPendingKgDocuments
+        .mockResolvedValueOnce([
+          { document_id: "doc-1", document_type: "invoice" },
+        ])
+        .mockResolvedValueOnce([]); // Break loop
+
+      const mockValidLlmResponse = {
+        mutations: {
+          entities: [],
+          relationships: [],
+        },
+        attributions: [],
+        reasoning: "Valid",
+      };
+
+      mocks.chat.mockResolvedValueOnce({
+        content: JSON.stringify(mockValidLlmResponse),
+      });
+
+      // Simulate 0 remaining docs
+      mocks.countPendingKgDocuments.mockResolvedValueOnce(0);
+
+      const result = await processKgBatch(job);
+
+      expect(result._requeue).toBeNull();
     });
   });
 });

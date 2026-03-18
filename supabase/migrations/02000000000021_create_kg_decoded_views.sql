@@ -9,7 +9,6 @@ create or replace view public.kg_entities_decoded with (security_invoker = on) a
 select
   id,
   owner_id,
-  entity_type,
   is_owner,
   case 
     when encrypted_data is not null then public.decrypt_jsonb(encrypted_data, master_key_version)

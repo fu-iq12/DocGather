@@ -147,6 +147,47 @@ app.post("/queue", async (req: Request, res: Response) => {
   }
 });
 
+interface KgIngestJobRequest {
+  ownerId: string;
+}
+
+/**
+ * Ingest webhook for triggering the KG processing for a owner.
+ */
+app.post("/kg-ingest", async (req: Request, res: Response) => {
+  try {
+    const { ownerId } = req.body as KgIngestJobRequest;
+
+    const { kgIngestionQueue } = await import("./queues.js");
+    const debounceJobId = `${ownerId}-kg-batch`;
+
+    let job = await kgIngestionQueue.getJob(debounceJobId);
+    if (job && ((await job.isCompleted()) || (await job.isFailed()))) {
+      await job.remove();
+      job = undefined;
+    }
+
+    job = await kgIngestionQueue.add(
+      "kg-ingest",
+      { ownerId, documentIds: [] },
+      {
+        jobId: debounceJobId, // Debounce key
+      },
+    );
+
+    res.json({
+      success: true,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("[Queue] Failed to queue documents:", errorMessage);
+    res.status(500).json({
+      error: "Failed to queue documents",
+      message: errorMessage,
+    });
+  }
+});
+
 // ============================================================================
 // Server Startup
 // ============================================================================

@@ -1,110 +1,113 @@
 import { z } from "zod";
+import { SHARED_ZOD, getCountryAtom } from "./document-types/shared.js";
 
-const entityActionSchema = z.enum(["set", "append", "remove"]);
-
-const fieldValueSchema = z.object({
-  value: z.any().describe("The value of the field"),
-  confidence: z.number().describe("Confidence score (0.0 to 1.0)"),
+const identitySchema = z.object({
+  names: SHARED_ZOD.names,
+  gender: SHARED_ZOD.gender.optional(),
+  birth: SHARED_ZOD.birth.optional(),
+  death: z
+    .string()
+    .describe("Date of death (YYYY-MM-DD). Example: 2026-02-12")
+    .optional(),
 });
 
-const fieldChangeSchema = z.object({
-  action: entityActionSchema,
-  value: fieldValueSchema.describe(
-    "The new value or object to merge/append/remove. Should include a `value` and `confidence` score (0.0 to 1.0)",
-  ),
+const addressSchema = z.object({
+  address: SHARED_ZOD.address,
+  valid_from: z.string().optional().describe("YYYY-MM-DD"),
+  valid_to: z.string().optional().describe("YYYY-MM-DD"),
 });
+
+const individualSchema = z.object({
+  identity: identitySchema.describe("Individual identity").optional(),
+  residence: z
+    .array(addressSchema)
+    .describe("Residence addresses history")
+    .optional(),
+});
+
+const organizationSchema = z.object({
+  name: z.string(),
+  type: z.enum(["administration", "business", "non_profit", "other"]),
+  address: SHARED_ZOD.address
+    .describe("Address of the organization")
+    .optional(),
+});
+
+const arbitrationsSchema = z
+  .record(
+    z.string().describe("Property path"),
+    z.object({
+      candidates: z.array(z.string()),
+      best: z.string(),
+      confidence: z.number(),
+      reasoning: z.string(),
+    }),
+  )
+  .describe(
+    "Describe arbitrations when merging conflicting property values from different sources",
+  );
 
 export const kgMutationSchema = z.object({
   mutations: z
     .object({
-      entities_to_add: z
+      entities: z
         .array(
           z.object({
-            temp_id: z
+            id: z
               .string()
               .describe(
-                "A temporary string ID like 'e_new_1' to reference in relationships within this mutation",
-              ),
-            type: z
-              .enum(["individual", "business", "administration", "non_profit"])
-              .describe("The type of entity"),
-            data: z
-              .record(z.string(), fieldValueSchema)
-              .describe(
-                "Entity properties. Nested objects. E.g. { first_name: { value: 'Jean', confidence: 0.9 } }",
-              ),
+                "The exact UUID of the existing entity or a temporary string ID like 'e_new_1' to reference in relationships within this mutation",
+              )
+              .optional(),
+            data: z.object({
+              individual: individualSchema
+                .describe("Data for individuals")
+                .optional(),
+              organization: organizationSchema
+                .describe("Data for organizations")
+                .optional(),
+            }),
+            arbitrations: arbitrationsSchema.optional(),
           }),
         )
         .optional()
-        .describe("New entities to create in the graph"),
+        .describe("Entities to create or update"),
 
-      entities_to_update: z
+      relationships: z
         .array(
           z.object({
-            id: z.string().describe("The exact UUID of the existing entity"),
-            field_changes: z
-              .record(z.string(), fieldChangeSchema)
-              .describe(
-                "Map of field paths (e.g. 'first_name', 'addresses') to the changes to apply",
-              ),
-          }),
-        )
-        .optional()
-        .describe("Updates to existing entities"),
-
-      relationships_to_add: z
-        .array(
-          z.object({
-            temp_id: z
+            id: z
               .string()
-              .describe("A temporary string ID like 'r_new_1'"),
+              .describe(
+                "The exact UUID of the existing entity or a temporary string ID like 'e_new_1_e_new_2' to reference in attributions",
+              ),
             type: z
               .string()
-              .describe(
-                "Relationship type (e.g. employee, marriage, tenant, beneficiary)",
-              ),
+              .describe("Relationship type in category:subtype format"),
             source: z.string().describe("UUID or temp_id of the source entity"),
             target: z.string().describe("UUID or temp_id of the target entity"),
             valid_from: z
               .string()
               .optional()
-              .describe("YYYY-MM-DD or YYYY-MM if known"),
-            data: z
-              .record(z.string(), z.any())
+              .describe(
+                "Start date of the relationship (YYYY-MM-DD or YYYY-MM)",
+              ),
+            valid_to: z
+              .string()
               .optional()
               .describe(
-                "Additional relationship data fields (nested with confidence)",
+                "End date of the relationship (reasons: expired, dissolved, ...etc)",
               ),
+            data: z
+              .record(
+                z.string(),
+                z.union([z.string(), z.number(), z.boolean()]),
+              )
+              .describe("Relationship data fields. Only simple values allowed"),
           }),
         )
         .optional()
         .describe("New relationships between entities"),
-
-      relationships_to_update: z
-        .array(
-          z.object({
-            id: z.string().describe("The UUID of the existing relationship"),
-            field_changes: z
-              .record(z.string(), fieldChangeSchema)
-              .describe("Map of field paths (e.g. 'data.salary') to update"),
-          }),
-        )
-        .optional()
-        .describe("Updates to existing relationships"),
-
-      relationships_to_close: z
-        .array(
-          z.object({
-            id: z.string().describe("The UUID of the relationship to close"),
-            valid_to: z
-              .string()
-              .describe("YYYY-MM-DD marking the end date of the relationship"),
-          }),
-        )
-        .optional()
-        .describe(
-          "Close explicitly expired relationships (do not destroy, just mark valid_to)",
-        ),
     })
     .describe(
       "The set of graph mutations mapping new unstructured data to structured nodes/edges",

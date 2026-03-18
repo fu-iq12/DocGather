@@ -111,7 +111,7 @@ export function getDefaultConfig(): LLMConfig {
       : ocrProvider === "ollama"
         ? "mistral-small3.2"
         : ocrProvider === "openrouter"
-          ? "qwen/qwen3.5-35b-a3b"
+          ? "qwen/qwen3.5-9b"
           : ocrProvider === "mistral"
             ? "mistral-small-latest"
             : "Mistral-Small-3.2-24B-Instruct-2506");
@@ -138,7 +138,7 @@ export function getDefaultConfig(): LLMConfig {
     (textProvider === "ollama"
       ? "mistral-small3.2"
       : textProvider === "openrouter"
-        ? "qwen/qwen3.5-35b-a3b"
+        ? "qwen/qwen3.5-9b"
         : textProvider === "mistral"
           ? "mistral-small-latest"
           : "Mistral-Small-3.2-24B-Instruct-2506");
@@ -163,7 +163,7 @@ export function getDefaultConfig(): LLMConfig {
     (visionProvider === "ollama"
       ? "mistral-small3.2"
       : visionProvider === "openrouter"
-        ? "qwen/qwen3.5-35b-a3b"
+        ? "qwen/qwen3.5-9b"
         : visionProvider === "mistral"
           ? "mistral-small-latest"
           : "Mistral-Small-3.2-24B-Instruct-2506");

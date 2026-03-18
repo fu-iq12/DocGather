@@ -593,6 +593,28 @@ export async function getPendingKgDocuments(
 }
 
 /**
+ * Count how many documents are currently pending KG processing for an owner.
+ */
+export async function countPendingKgDocuments(
+  ownerId: string,
+): Promise<number> {
+  const { data, error } = await supabase.rpc(
+    "worker_kg_count_pending_documents",
+    {
+      p_owner_id: ownerId,
+    },
+  );
+
+  if (error) {
+    throw new Error(
+      `worker_kg_count_pending_documents failed: ${error.message}`,
+    );
+  }
+
+  return data as number;
+}
+
+/**
  * Fetch the current decoded Knowledge Graph for an owner.
  */
 export async function getKnowledgeGraph(ownerId: string): Promise<{

@@ -40,7 +40,8 @@ async function runPythonExtraction(pdfPath: string): Promise<PdfExtractResult> {
     console.warn(`[PdfSimpleExtract] Python stderr: ${stderr}`);
   }
 
-  const result = JSON.parse(stdout);
+  // Remove null characters from stdout (encrypt_jsonb issue: unsupported Unicode escape sequence)
+  const result = JSON.parse(stdout.replace(/\\u0000/g, ""));
 
   if (result.error) {
     throw new Error(`Python extraction failed: ${result.error}`);

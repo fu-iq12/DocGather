@@ -21,8 +21,8 @@ export const residenceDefinitions: DocumentTypeDefinition[] = [
         client: z
           .object({
             names: SHARED_ZOD.names.optional(),
-            genders: SHARED_ZOD.genders.optional(),
-            addresses: SHARED_ZOD.addresses.optional(),
+            gender: SHARED_ZOD.gender.optional(),
+            address: SHARED_ZOD.address.optional(),
           })
           .describe("Client details."),
       })
@@ -43,8 +43,8 @@ export const residenceDefinitions: DocumentTypeDefinition[] = [
         tenant: z
           .object({
             names: SHARED_ZOD.names.optional(),
-            genders: SHARED_ZOD.genders.optional(),
-            addresses: SHARED_ZOD.addresses.optional(),
+            gender: SHARED_ZOD.gender.optional(),
+            address: SHARED_ZOD.address.optional(),
           })
           .describe("Tenant details."),
       })
@@ -61,8 +61,8 @@ export const residenceDefinitions: DocumentTypeDefinition[] = [
         owner: z
           .object({
             names: SHARED_ZOD.names.optional(),
-            genders: SHARED_ZOD.genders.optional(),
-            addresses: SHARED_ZOD.addresses.optional(),
+            gender: SHARED_ZOD.gender.optional(),
+            address: SHARED_ZOD.address.optional(),
           })
           .describe("Owner details."),
       })
@@ -83,8 +83,8 @@ export const residenceDefinitions: DocumentTypeDefinition[] = [
         insured: z
           .object({
             names: SHARED_ZOD.names.optional(),
-            genders: SHARED_ZOD.genders.optional(),
-            addresses: SHARED_ZOD.addresses.optional(),
+            gender: SHARED_ZOD.gender.optional(),
+            address: SHARED_ZOD.address.optional(),
           })
           .describe("Insured details."),
         coveragePeriod: SHARED_ZOD.period.optional(),
@@ -103,7 +103,7 @@ export const residenceDefinitions: DocumentTypeDefinition[] = [
           .string()
           .describe("Name of the hosted person.")
           .optional(),
-        addresses: SHARED_ZOD.addresses
+        address: SHARED_ZOD.address
           .describe("Address of accommodation.")
           .optional(),
         dates: SHARED_ZOD.dates.optional(),

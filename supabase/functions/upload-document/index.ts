@@ -201,11 +201,6 @@ createHandler(async (req: Request) => {
       existingMetadata.sources = existingMetadata.sources || {};
       existingMetadata.sources[sourceKey] = sourceMetadata;
 
-      console.log(
-        "existingMetadata",
-        JSON.stringify(existingMetadata, null, 2),
-      );
-
       // Encrypt updated metadata
       const { data: encryptedMeta } = await supabase.rpc("encrypt_jsonb", {
         p_data: existingMetadata,
