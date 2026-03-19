@@ -21,6 +21,8 @@ import { OllamaProvider } from "./providers/ollama.js";
 import { LLMCache } from "./cache.js";
 import { MistralOcrProvider } from "./providers/mistral-ocr.js";
 
+import { z } from "zod";
+
 /**
  * Factory function instantiating the appropriate provider client (Generic, Mistral, Ollama, etc.)
  * based on the environment configuration and injecting the necessary API keys.
@@ -117,6 +119,22 @@ export class LLMClient {
     const model = options?.model || this.config.vision.model;
     const prefix = options?.cachePrefix || "vision";
 
+    const generation = options?.parentTrace
+      ? options.parentTrace.startObservation(
+          `llm-${prefix}`,
+          {
+            model,
+            input: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: `[Image: ${imageMimeType}]` },
+            ],
+            prompt: options.langfusePrompt,
+            sessionId: options.sessionId,
+          },
+          { asType: "generation" },
+        )
+      : null;
+
     // Check cache first
     if (this.cache && !options?.skipCache) {
       const cached = await this.cache.get(
@@ -126,32 +144,69 @@ export class LLMClient {
       );
       if (cached) {
         console.log(`[LLMClient] Cache hit for model ${model} (${prefix})`);
+        generation
+          ?.update({
+            output: cached.content,
+            usageDetails: cached.usage
+              ? {
+                  input: cached.usage.promptTokens,
+                  output: cached.usage.completionTokens,
+                  total: cached.usage.totalTokens,
+                }
+              : undefined,
+            level: "DEFAULT",
+          })
+          .end();
         return cached;
       }
     }
 
-    // Call provider
-    const response = await this.visionProvider.vision(
-      systemPrompt,
-      imageBuffer,
-      imageMimeType,
-      {
-        ...options,
-        model,
-      },
-    );
-
-    // Cache response
-    if (this.cache && !options?.skipCache) {
-      await this.cache.set(
-        { systemPrompt, imageBuffer },
-        model,
-        response,
-        prefix,
+    try {
+      // Call provider
+      const response = await this.visionProvider.vision(
+        systemPrompt,
+        imageBuffer,
+        imageMimeType,
+        {
+          ...options,
+          model,
+        },
       );
-    }
 
-    return response;
+      // Cache response
+      if (this.cache) {
+        await this.cache.set(
+          { systemPrompt, imageBuffer },
+          model,
+          response,
+          prefix,
+        );
+      }
+
+      generation
+        ?.update({
+          output: response.content,
+          usageDetails: response.usage
+            ? {
+                input: response.usage.promptTokens,
+                output: response.usage.completionTokens,
+                total: response.usage.totalTokens,
+              }
+            : undefined,
+          level: "DEFAULT",
+        })
+        .end();
+
+      return response;
+    } catch (error) {
+      generation
+        ?.update({
+          level: "ERROR",
+          statusMessage: String(error),
+        })
+        .end();
+      throw error;
+    }
   }
 
   /**
@@ -166,6 +221,22 @@ export class LLMClient {
     const model = options?.model || this.config.ocr.model;
     const prefix = options?.cachePrefix || "ocr";
 
+    const generation = options?.parentTrace
+      ? options.parentTrace.startObservation(
+          `llm-${prefix}`,
+          {
+            model,
+            input: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: `[Image OCR: ${imageMimeType}]` },
+            ],
+            prompt: options.langfusePrompt,
+            sessionId: options.sessionId,
+          },
+          { asType: "generation" },
+        )
+      : null;
+
     // Check cache first
     if (this.cache && !options?.skipCache) {
       const cached = await this.cache.get(
@@ -175,32 +246,65 @@ export class LLMClient {
       );
       if (cached) {
         console.log(`[LLMClient] Cache hit for model ${model} (${prefix})`);
+        generation
+          ?.update({
+            output: cached.content,
+            usageDetails: cached.usage
+              ? {
+                  input: cached.usage.promptTokens,
+                  output: cached.usage.completionTokens,
+                  total: cached.usage.totalTokens,
+                }
+              : undefined,
+            level: "DEFAULT",
+          })
+          .end();
         return cached;
       }
     }
 
-    // Call provider
-    const response = await this.ocrProvider.vision(
-      systemPrompt,
-      imageBuffer,
-      imageMimeType,
-      {
-        ...options,
-        model,
-      },
-    );
-
-    // Cache response
-    if (this.cache && !options?.skipCache) {
-      await this.cache.set(
-        { systemPrompt, imageBuffer },
-        model,
-        response,
-        prefix,
+    try {
+      // Call provider
+      const response = await this.ocrProvider.vision(
+        systemPrompt,
+        imageBuffer,
+        imageMimeType,
+        {
+          ...options,
+          model,
+        },
       );
-    }
 
-    return response;
+      // Cache response
+      if (this.cache) {
+        await this.cache.set(
+          { systemPrompt, imageBuffer },
+          model,
+          response,
+          prefix,
+        );
+      }
+
+      generation
+        ?.update({
+          output: response.content,
+          usageDetails: response.usage
+            ? {
+                input: response.usage.promptTokens,
+                output: response.usage.completionTokens,
+                total: response.usage.totalTokens,
+              }
+            : undefined,
+          level: "DEFAULT",
+        })
+        .end();
+      return response;
+    } catch (error) {
+      generation
+        ?.update({ level: "ERROR", statusMessage: String(error) })
+        .end();
+      throw error;
+    }
   }
 
   /**
@@ -214,6 +318,22 @@ export class LLMClient {
     const model = options?.model || this.config.text.model;
     const prefix = options?.cachePrefix || "chat";
 
+    const generation = options?.parentTrace
+      ? options.parentTrace.startObservation(
+          `llm-${prefix}`,
+          {
+            model,
+            input: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            prompt: options.langfusePrompt,
+            sessionId: options.sessionId,
+          },
+          { asType: "generation" },
+        )
+      : null;
+
     // Check cache first
     if (this.cache && !options?.skipCache) {
       const cached = await this.cache.get(
@@ -223,27 +343,60 @@ export class LLMClient {
       );
       if (cached) {
         console.log(`[LLMClient] Cache hit for model ${model} (${prefix})`);
+        generation
+          ?.update({
+            output: cached.content,
+            usageDetails: cached.usage
+              ? {
+                  input: cached.usage.promptTokens,
+                  output: cached.usage.completionTokens,
+                  total: cached.usage.totalTokens,
+                }
+              : undefined,
+            level: "DEFAULT",
+          })
+          .end();
         return cached;
       }
     }
 
-    // Call provider
-    const response = await this.textProvider.text(systemPrompt, userPrompt, {
-      ...options,
-      model,
-    });
-
-    // Cache response
-    if (this.cache && !options?.skipCache) {
-      await this.cache.set(
-        { systemPrompt, userPrompt },
+    try {
+      // Call provider
+      const response = await this.textProvider.text(systemPrompt, userPrompt, {
+        ...options,
         model,
-        response,
-        prefix,
-      );
-    }
+      });
 
-    return response;
+      // Cache response
+      if (this.cache) {
+        await this.cache.set(
+          { systemPrompt, userPrompt },
+          model,
+          response,
+          prefix,
+        );
+      }
+
+      generation
+        ?.update({
+          output: response.content,
+          usageDetails: response.usage
+            ? {
+                input: response.usage.promptTokens,
+                output: response.usage.completionTokens,
+                total: response.usage.totalTokens,
+              }
+            : undefined,
+          level: "DEFAULT",
+        })
+        .end();
+      return response;
+    } catch (error) {
+      generation
+        ?.update({ level: "ERROR", statusMessage: String(error) })
+        .end();
+      throw error;
+    }
   }
 
   /**
@@ -278,3 +431,63 @@ export class LLMClient {
 
 // Re-export types
 export type { ChatMessage, ChatResponse, ChatRequestOptions } from "./types.js";
+
+/**
+ * Helper to safely extract JSON from markdown wrappers and validate against a Zod schema.
+ * Emits error events automatically if a Langfuse trace parent is provided.
+ */
+export function parseResponse<T = any>(
+  content: string,
+  promptText?: string,
+  schema?: z.ZodType<T>,
+  traceParent?: any,
+): T {
+  // Extract JSON
+  const jsonMatch = content.match(/```(?:json|typescript)?\s*([\s\S]*?)```/);
+  const jsonStr = jsonMatch ? jsonMatch[1].trim() : content.trim();
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(jsonStr);
+  } catch (e) {
+    if (traceParent) {
+      traceParent
+        .startObservation(
+          "json_parse_error",
+          {
+            input: { prompt: promptText, rawResponse: content },
+            metadata: { error: String(e) },
+            level: "ERROR",
+          },
+          { asType: "span" },
+        )
+        .end();
+    }
+    throw new Error(
+      `Failed to parse LLM response as JSON: ${e instanceof Error ? e.message : e}`,
+    );
+  }
+
+  if (schema) {
+    try {
+      return schema.parse(parsed) as T;
+    } catch (e) {
+      if (traceParent) {
+        traceParent
+          .startObservation(
+            "zod_validation_error",
+            {
+              input: { prompt: promptText, parsedResponse: parsed },
+              metadata: { error: String(e) },
+              level: "ERROR",
+            },
+            { asType: "span" },
+          )
+          .end();
+      }
+      throw e;
+    }
+  }
+
+  return parsed as T;
+}

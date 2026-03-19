@@ -14,6 +14,7 @@ import fs from "fs/promises";
 import path from "path";
 import os from "os";
 import { connection } from "../queues.js";
+import { startObservation, propagateAttributes } from "@langfuse/tracing";
 import {
   isEmail,
   isNativeSpreadsheet,
@@ -23,8 +24,11 @@ import {
 
 const execFileAsync = promisify(execFile);
 
-const processor = async (job: Job<SubtaskInput, FormatConversionResult>) => {
-  const { documentId, originalPath, ownerId } = job.data;
+async function _processFormatConversionJob(
+  job: Job<SubtaskInput, FormatConversionResult>,
+  trace: any,
+) {
+  const { documentId, originalPath } = job.data;
 
   // Allocate ephemeral processing directory
   const tempDir = await fs.mkdtemp(
@@ -86,7 +90,11 @@ const processor = async (job: Job<SubtaskInput, FormatConversionResult>) => {
         );
       }
 
-      return { extractedText: pyOut.trim() } satisfies FormatConversionResult;
+      const result = {
+        extractedText: pyOut.trim(),
+      } satisfies FormatConversionResult;
+      trace.update({ output: result });
+      return result;
     } else if (isXps(job.data.mimeType)) {
       console.log(`[ConvertToPDF] Converting XPS to PDF via mutool...`);
       const { stdout, stderr } = await execFileAsync("mutool", [
@@ -158,7 +166,13 @@ const processor = async (job: Job<SubtaskInput, FormatConversionResult>) => {
       "application/pdf",
     );
 
-    return { convertedPdfPath: storage_path } satisfies FormatConversionResult;
+    const result = {
+      convertedPdfPath: storage_path,
+    } satisfies FormatConversionResult;
+    trace.update({ output: result });
+    return result;
+  } catch (err) {
+    throw err;
   } finally {
     console.log(
       `[FormatConversion] Cleaning up temp files for ${documentId}...`,
@@ -170,12 +184,44 @@ const processor = async (job: Job<SubtaskInput, FormatConversionResult>) => {
       );
     });
   }
+}
+
+export const processFormatConversionJob = async (
+  job: Job<SubtaskInput, FormatConversionResult>,
+) => {
+  const { documentId, ownerId, jobTime } = job.data;
+  let span: any;
+  return await propagateAttributes(
+    {
+      traceName: "format-conversion",
+      sessionId: `${jobTime}-${documentId}-orchestrator`,
+      userId: ownerId,
+      tags: ["worker", "format-conversion"],
+    },
+    async () => {
+      span = startObservation("format-conversion");
+      try {
+        const result = await _processFormatConversionJob(job, span);
+        span.end();
+        return result;
+      } catch (err) {
+        span
+          .update({
+            level: "ERROR",
+            statusMessage: String(err),
+            metadata: { error: String(err) },
+          })
+          .end();
+        throw err;
+      }
+    },
+  );
 };
 
 export const formatConversionWorker = new Worker<
   SubtaskInput,
   FormatConversionResult
->("format-conversion", processor, {
+>("format-conversion", processFormatConversionJob, {
   connection,
   concurrency: 5,
 });

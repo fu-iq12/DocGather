@@ -14,6 +14,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { connection } from "../queues.js";
 import { downloadFile, uploadFile } from "../supabase.js";
+import { startObservation, propagateAttributes } from "@langfuse/tracing";
 import type { SubtaskInput, ImageScalingResult } from "../types.js";
 import { getDefaultConfig } from "../llm/types.js";
 
@@ -236,10 +237,43 @@ async function scalePdfPage(
  * Processes incoming documents based on their MIME type, triggering the scale sequence
  * or PDF layout extraction sequence. Records paths back into 'document_files'.
  */
-async function processImageScalingJob(
+export async function processImageScalingJob(
   job: Job<SubtaskInput>,
 ): Promise<ImageScalingResult> {
-  const { documentId, ownerId, originalPath, mimeType } = job.data;
+  const { documentId, ownerId, jobTime } = job.data;
+  let span: any;
+  return await propagateAttributes(
+    {
+      traceName: "image-scaling",
+      sessionId: `${jobTime}-${documentId}-orchestrator`,
+      userId: ownerId,
+      tags: ["worker", "image-scaling"],
+    },
+    async () => {
+      span = startObservation("image-scaling");
+      try {
+        const result = await _processImageScalingJob(job, span);
+        span.end();
+        return result;
+      } catch (err) {
+        span
+          .update({
+            level: "ERROR",
+            statusMessage: String(err),
+            metadata: { error: String(err) },
+          })
+          .end();
+        throw err;
+      }
+    },
+  );
+}
+
+async function _processImageScalingJob(
+  job: Job<SubtaskInput>,
+  trace: any,
+): Promise<ImageScalingResult> {
+  const { documentId, ownerId, mimeType } = job.data;
 
   console.log(`[ImageScaling] Processing document ${documentId} (${mimeType})`);
 
@@ -252,14 +286,17 @@ async function processImageScalingJob(
       result = await scaleImage(documentId, ownerId, "original", 0);
     }
 
-    return {
+    const output = {
       scaledPaths: [result.scaledPath],
       originalDimensions: [result.originalDimensions],
     };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    trace.update({ output });
+    return output;
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
     console.error(`[ImageScaling] Failed for ${documentId}:`, errorMessage);
-    throw error;
+    throw err;
   }
 }
 
@@ -288,9 +325,4 @@ imageScalingWorker.on("failed", (job, error) => {
   console.error(`[ImageScaling] Job ${job?.id} failed:`, error.message);
 });
 
-export {
-  scaleImage,
-  processImageScalingJob,
-  getImageDimensions,
-  scaleImageWithMagick,
-};
+export { scaleImage, getImageDimensions, scaleImageWithMagick };

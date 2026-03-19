@@ -11,17 +11,20 @@ import fs from "fs/promises";
 import path from "path";
 import os from "os";
 import { connection } from "../queues.js";
+import { startObservation, propagateAttributes } from "@langfuse/tracing";
 
 const MAX_TXT_LENGTH = 50_000; // Cap at 50k chars to avoid LLM token explosions
 
-const processor = async (job: Job<SubtaskInput, TxtExtractResult>) => {
-  const { documentId, mimeType } = job.data;
+async function _processTxtSimpleExtractJob(
+  job: Job<SubtaskInput, TxtExtractResult>,
+  trace: any,
+) {
+  const { documentId } = job.data;
 
   // Create a temporary directory for processing this document
   const tempDir = await fs.mkdtemp(
     path.join(os.tmpdir(), `txt-${documentId}-`),
   );
-  const inputFile = path.join(tempDir, `original-${documentId}.txt`);
 
   try {
     console.log(`[TxtSimpleExtract] Downloading original for ${documentId}...`);
@@ -50,17 +53,20 @@ const processor = async (job: Job<SubtaskInput, TxtExtractResult>) => {
       `[TxtSimpleExtract] Extracted ${text.length} characters of text for ${documentId}.`,
     );
 
-    return {
+    const result = {
       text,
       success: true,
     } satisfies TxtExtractResult;
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
+
+    trace.update({ output: result });
+    return result;
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
     console.error(
       `[TxtSimpleExtract] Extraction failed for ${documentId}:`,
       errorMsg,
     );
-    throw error;
+    throw err;
   } finally {
     // Clean up temporary files
     await fs.rm(tempDir, { recursive: true, force: true }).catch((err) => {
@@ -70,12 +76,44 @@ const processor = async (job: Job<SubtaskInput, TxtExtractResult>) => {
       );
     });
   }
+}
+
+export const processTxtSimpleExtractJob = async (
+  job: Job<SubtaskInput, TxtExtractResult>,
+) => {
+  const { documentId, ownerId, jobTime } = job.data;
+  let span: any;
+  return await propagateAttributes(
+    {
+      traceName: "txt-simple-extract",
+      sessionId: `${jobTime}-${documentId}-orchestrator`,
+      userId: ownerId,
+      tags: ["worker", "txt-simple-extract"],
+    },
+    async () => {
+      span = startObservation("txt-simple-extract");
+      try {
+        const result = await _processTxtSimpleExtractJob(job, span);
+        span.end();
+        return result;
+      } catch (err) {
+        span
+          .update({
+            level: "ERROR",
+            statusMessage: String(err),
+            metadata: { error: String(err) },
+          })
+          .end();
+        throw err;
+      }
+    },
+  );
 };
 
 export const txtSimpleExtractWorker = new Worker<
   SubtaskInput,
   TxtExtractResult
->("txt-simple-extract", processor, {
+>("txt-simple-extract", processTxtSimpleExtractJob, {
   connection,
   concurrency: 5,
 });

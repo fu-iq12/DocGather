@@ -25,6 +25,8 @@ import {
   isPdf,
   isTextDocument,
 } from "./utils/mime-types.js";
+import { getJobTime } from "./utils/jobtime.js";
+import { startObservation, propagateAttributes } from "@langfuse/tracing";
 // const flowProducer = new FlowProducer({ connection });
 
 // ============================================================================
@@ -93,7 +95,7 @@ async function spawnChildJob(
       data,
       opts: {
         ...opts,
-        jobId: `${data.jobNumber}-${data.documentId}-${name}`,
+        jobId: `${data.jobTime}-${data.documentId}-${name}`,
         failParentOnFailure: true,
         parent: {
           id: parentJob.id,
@@ -139,11 +141,7 @@ export async function queueDocumentForProcessing(
     priority,
   } = params;
 
-  const jobNumber = new Date()
-    .toISOString()
-    .substring(0, 19)
-    .replace(/[-:]/g, "")
-    .replace(/T/g, "-");
+  const jobTime = getJobTime();
 
   // We start with Initial step to allow logic to route
   const flow = await addJobToFlow({
@@ -151,7 +149,7 @@ export async function queueDocumentForProcessing(
     queueName: "orchestrator",
     data: {
       documentId,
-      jobNumber,
+      jobTime,
       mimeType,
       originalPath,
       originalFileId,
@@ -161,7 +159,7 @@ export async function queueDocumentForProcessing(
       step: Step.Initial,
     },
     opts: {
-      jobId: `${jobNumber}-${documentId}-orchestrator`,
+      jobId: `${jobTime}-${documentId}-orchestrator`,
       priority,
     },
   });
@@ -195,6 +193,40 @@ export async function queueDocumentForProcessing(
 // ============================================================================
 
 export const orchestratorProcessor = async (job: Job, token?: string) => {
+  const input = job.data as SubtaskInput;
+  let span: any;
+  return await propagateAttributes(
+    {
+      traceName: `orchestrator-step:${input.step}`,
+      sessionId: `${input.jobTime}-${input.documentId}-orchestrator`,
+      userId: input.ownerId,
+      tags: ["orchestrator"],
+    },
+    async () => {
+      span = startObservation(`orchestrator-step:${input.step}`);
+      try {
+        const result = await _orchestratorProcessor(job, span, token);
+        span.end();
+        return result;
+      } catch (err) {
+        if (err instanceof WaitingChildrenError) {
+          span.end();
+        } else {
+          span
+            .update({
+              level: "ERROR",
+              statusMessage: String(err),
+              metadata: { error: String(err) },
+            })
+            .end();
+        }
+        throw err;
+      }
+    },
+  );
+};
+
+async function _orchestratorProcessor(job: Job, trace: any, token?: string) {
   let currentStep = job.data.step as Step;
   const input = job.data as SubtaskInput;
 
@@ -522,7 +554,9 @@ export const orchestratorProcessor = async (job: Job, token?: string) => {
 
           // Wait for OCR
           const shouldWaitForOcr = await job.moveToWaitingChildren(token!);
-          if (shouldWaitForOcr) throw new WaitingChildrenError();
+          if (shouldWaitForOcr) {
+            throw new WaitingChildrenError();
+          }
           break;
         }
 
@@ -538,7 +572,9 @@ export const orchestratorProcessor = async (job: Job, token?: string) => {
 
         case Step.WaitClassify: {
           const shouldWait = await job.moveToWaitingChildren(token!);
-          if (shouldWait) throw new WaitingChildrenError();
+          if (shouldWait) {
+            throw new WaitingChildrenError();
+          }
 
           // Read classification result — skip further processing for irrelevant docs
           const classifyChildren = await job.getChildrenValues();
@@ -585,7 +621,9 @@ export const orchestratorProcessor = async (job: Job, token?: string) => {
 
         case Step.WaitNormalize: {
           const shouldWait = await job.moveToWaitingChildren(token!);
-          if (shouldWait) throw new WaitingChildrenError();
+          if (shouldWait) {
+            throw new WaitingChildrenError();
+          }
           currentStep = Step.Finalize;
           await job.updateData({ ...input, step: currentStep });
           break;
@@ -668,6 +706,7 @@ export const orchestratorProcessor = async (job: Job, token?: string) => {
         {
           ownerId: input.ownerId,
           documentIds: [...documentIds, input.documentId],
+          sessionId: `${getJobTime()}-${input.ownerId}-kg-batch`,
         },
         {
           jobId: debounceJobId, // Debounce key
@@ -712,6 +751,8 @@ export const orchestratorProcessor = async (job: Job, token?: string) => {
       `[Orchestrator] Document ${input.documentId} workflow finished in ${duration}ms`,
     );
 
+    trace.update({ output: { success: true, duration } });
+
     return {
       success: true,
       documentId: input.documentId,
@@ -737,7 +778,7 @@ export const orchestratorProcessor = async (job: Job, token?: string) => {
     }
     throw error;
   }
-};
+}
 
 // ============================================================================
 // Orchestrator Worker Instance

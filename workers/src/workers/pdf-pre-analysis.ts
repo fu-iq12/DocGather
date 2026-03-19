@@ -13,6 +13,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { connection } from "../queues.js";
 import { downloadFile } from "../supabase.js";
+import { startObservation, propagateAttributes } from "@langfuse/tracing";
 import type { SubtaskInput, PreAnalysisResult } from "../types.js";
 
 const execFileAsync = promisify(execFile);
@@ -51,24 +52,59 @@ async function runPythonAnalysis(pdfPath: string): Promise<PreAnalysisResult> {
 /**
  * PDF pre-analysis job processor
  */
-async function processPdfPreAnalysisJob(
+export async function processPdfPreAnalysisJob(
   job: Job<SubtaskInput>,
 ): Promise<PreAnalysisResult> {
-  const { documentId, originalPath, mimeType, convertedPdfPath } = job.data;
+  const { documentId, ownerId, jobTime } = job.data;
+  let span: any;
+  return await propagateAttributes(
+    {
+      traceName: "pdf-pre-analysis",
+      sessionId: `${jobTime}-${documentId}-orchestrator`,
+      userId: ownerId,
+      tags: ["worker", "pdf-pre-analysis"],
+    },
+    async () => {
+      span = startObservation("pdf-pre-analysis");
+      try {
+        const result = await _processPdfPreAnalysisJob(job, span);
+        span.end();
+        return result;
+      } catch (err) {
+        span
+          .update({
+            level: "ERROR",
+            statusMessage: String(err),
+            metadata: { error: String(err) },
+          })
+          .end();
+        throw err;
+      }
+    },
+  );
+}
+
+async function _processPdfPreAnalysisJob(
+  job: Job<SubtaskInput>,
+  trace: any,
+): Promise<PreAnalysisResult> {
+  const { documentId, mimeType, convertedPdfPath } = job.data;
 
   // Verify this is a PDF or was converted to one
   if (mimeType !== "application/pdf" && !convertedPdfPath) {
     console.log(
       `[PdfPreAnalysis] Skipping non-PDF document ${documentId} (${mimeType})`,
     );
-    return {
+    const result = {
       isMultiDocument: false,
       documentCount: 0,
       pageCount: 0,
       hasTextLayer: false,
-      textQuality: "none",
+      textQuality: "none" as const,
       language: "unknown",
     };
+    trace.update({ output: result });
+    return result;
   }
 
   console.log(`[PdfPreAnalysis] Analyzing document ${documentId}`);
@@ -93,7 +129,10 @@ async function processPdfPreAnalysisJob(
         (result.isMultiDocument ? ` (multi-doc: ${result.documentCount})` : ""),
     );
 
+    trace.update({ output: result });
     return result;
+  } catch (err) {
+    throw err;
   } finally {
     // Cleanup temp file
     await rm(tempDir, { recursive: true, force: true }).catch(() => {});
@@ -122,4 +161,4 @@ pdfPreAnalysisWorker.on("failed", (job, error) => {
   console.error(`[PdfPreAnalysis] Job ${job?.id} failed:`, error.message);
 });
 
-export { processPdfPreAnalysisJob, runPythonAnalysis };
+export { runPythonAnalysis };

@@ -7,119 +7,160 @@
 
 import { Worker, Job } from "bullmq";
 import { connection } from "../queues.js";
-import { LLMClient } from "../llm/index.js";
+import { startObservation, propagateAttributes } from "@langfuse/tracing";
+import { LangfuseClient } from "@langfuse/client";
+import { LLMClient, parseResponse } from "../llm/index.js";
 import type { SubtaskInput, LlmClassificationResult } from "../types.js";
 import { trackLlmUsage } from "../llm/billing.js";
 import { llmClassificationSchema } from "../llm/schemas/classify.js";
-import { CLASSIFY_SYSTEM_PROMPT } from "../llm/prompts/classify.js";
+import { zodToTs } from "../llm/schemas/utils.js";
 
-/**
- * Parse LLM response
- */
-// Helpers to parse response
-function parseResponse(content: string): any {
-  const jsonMatch = content.match(/```(?:json|typescript)?\s*([\s\S]*?)```/);
-  const jsonStr = jsonMatch ? jsonMatch[1].trim() : content.trim();
-  try {
-    return JSON.parse(jsonStr);
-  } catch (e) {
-    console.warn("[DEBUG] LlmClassify.parseResponse failed, jsonStr:", jsonStr);
-    throw new Error(
-      `Failed to parse LLM response as JSON: ${e instanceof Error ? e.message : e}`,
-    );
-  }
-}
+// Initialize the Langfuse client
+const langfuse = new LangfuseClient();
 
 /**
  * LLM Classify job processor
  */
-async function processLlmClassifyJob(
+export async function processLlmClassifyJob(
   job: Job<SubtaskInput>,
+): Promise<LlmClassificationResult | null> {
+  const { documentId, ownerId, jobTime } = job.data;
+  let span: any;
+  return await propagateAttributes(
+    {
+      traceName: "llm-classify",
+      sessionId: `${jobTime}-${documentId}-orchestrator`,
+      userId: ownerId,
+      tags: ["worker", "llm-classify"],
+    },
+    async () => {
+      span = startObservation("llm-classify");
+      try {
+        const result = await _processLlmClassifyJob(job, span);
+        span.end();
+        return result;
+      } catch (err) {
+        span
+          .update({
+            level: "ERROR",
+            statusMessage: String(err),
+            metadata: { error: String(err) },
+          })
+          .end();
+        throw err;
+      }
+    },
+  );
+}
+
+async function _processLlmClassifyJob(
+  job: Job<SubtaskInput>,
+  trace: any,
 ): Promise<LlmClassificationResult | null> {
   const { documentId, extractedText } = job.data;
 
-  if (!extractedText || extractedText.trim().length === 0) {
+  try {
+    if (!extractedText || extractedText.trim().length === 0) {
+      console.log(
+        `[LlmClassify] No extracted text for document ${documentId}, skipping`,
+      );
+      trace.update({ output: { skipped: true, reason: "no_text" } });
+      return null;
+    }
+
     console.log(
-      `[LlmClassify] No extracted text for document ${documentId}, skipping`,
+      `[LlmClassify] Classifying document ${documentId} (${extractedText.length} chars)`,
     );
-    return null;
-  }
 
-  console.log(
-    `[LlmClassify] Classifying document ${documentId} (${extractedText.length} chars)`,
-  );
+    const client = new LLMClient();
 
-  const client = new LLMClient();
+    const langfusePrompt = await langfuse.prompt.get("classify");
+    const systemPrompt = langfusePrompt.compile({
+      LlmClassificationResponse: zodToTs(
+        llmClassificationSchema,
+        "LlmClassificationResponse",
+      ),
+    });
 
-  const chatOptions = {
-    responseFormat: { type: "json_object" as const },
-    cachePrefix: job.queueName,
-    temperature: 0,
-  };
+    const userPrompt = `Original Filename: ${job.data.originalFilename || "unknown"}\n\nDocument Text:\n${extractedText}`;
 
-  // Parse and type-validate against Zod schemas, with retry backoffs
-  const MAX_PARSE_ATTEMPTS = 3;
-  const promptText = `Original Filename: ${job.data.originalFilename || "unknown"}\n\nDocument Text:\n${extractedText}`;
+    const chatOptions = {
+      responseFormat: { type: "json_object" as const },
+      cachePrefix: job.queueName,
+      temperature: 0,
+      parentTrace: trace,
+      langfusePrompt,
+    };
 
-  let response = await client.chat(
-    CLASSIFY_SYSTEM_PROMPT,
-    promptText,
-    chatOptions,
-  );
+    // Parse and type-validate against Zod schemas, with retry backoffs
+    const MAX_PARSE_ATTEMPTS = 3;
 
-  for (let attempt = 1; attempt <= MAX_PARSE_ATTEMPTS; attempt++) {
-    try {
-      const headers = parseResponse(response.content);
+    let response = await client.chat(systemPrompt, userPrompt, chatOptions);
 
-      // STRICT VALIDATION
-      const result = llmClassificationSchema.parse(headers);
-
-      await trackLlmUsage(documentId, "text", response);
-
-      return {
-        documentType: result.documentType || "other.unclassified",
-        extractionConfidence: result.extractionConfidence || 0,
-        language: result.language || "unknown",
-        explanation: result.explanation,
-        documentSummary: result.documentSummary,
-      };
-    } catch (parseError) {
-      if (attempt < MAX_PARSE_ATTEMPTS) {
-        console.warn(
-          `[LlmClassify] Parse/validation attempt ${attempt}/${MAX_PARSE_ATTEMPTS} failed for document ${documentId}` +
-            (response.cached ? " (cached response)" : "") +
-            `, retrying LLM call...`,
-          parseError instanceof Error ? parseError.message : parseError,
+    for (let attempt = 1; attempt <= MAX_PARSE_ATTEMPTS; attempt++) {
+      try {
+        const result = parseResponse(
+          response.content,
+          userPrompt,
+          llmClassificationSchema,
+          trace,
         );
 
-        // Retry the LLM call (skip cache to force a fresh request)
-        response = await client.chat(CLASSIFY_SYSTEM_PROMPT, promptText, {
-          ...chatOptions,
-          skipCache: true,
-        });
-      } else {
-        // Final attempt failed — return safe fallback
-        console.error(
-          `[LlmClassify] All ${MAX_PARSE_ATTEMPTS} parse attempts failed for document ${documentId}:`,
-          parseError instanceof Error ? parseError.message : parseError,
-        );
-        return {
-          documentType: "other.unclassified",
-          extractionConfidence: 0,
-          language: "unknown",
-          explanation: "Validation failed",
+        await trackLlmUsage(documentId, "text", response);
+
+        const output = {
+          documentType: result.documentType || "other.unclassified",
+          extractionConfidence: result.extractionConfidence || 0,
+          language: result.language || "unknown",
+          explanation: result.explanation,
+          documentTitle: result.documentTitle,
+          documentSummary: result.documentSummary,
         };
+
+        trace.update({ output });
+        return output;
+      } catch (parseError) {
+        if (attempt < MAX_PARSE_ATTEMPTS) {
+          console.warn(
+            `[LlmClassify] Parse/validation attempt ${attempt}/${MAX_PARSE_ATTEMPTS} failed for document ${documentId}` +
+              (response.cached ? " (cached response)" : "") +
+              `, retrying LLM call...`,
+            parseError instanceof Error ? parseError.message : parseError,
+          );
+
+          // Retry the LLM call (skip cache to force a fresh request)
+          response = await client.chat(systemPrompt, userPrompt, {
+            ...chatOptions,
+            skipCache: true,
+          });
+        } else {
+          // Final attempt failed — return safe fallback
+          console.error(
+            `[LlmClassify] All ${MAX_PARSE_ATTEMPTS} parse attempts failed for document ${documentId}:`,
+            parseError instanceof Error ? parseError.message : parseError,
+          );
+          const output = {
+            documentType: "other.unclassified",
+            extractionConfidence: 0,
+            language: "unknown",
+            explanation: "Validation failed",
+          } as LlmClassificationResult;
+
+          trace.update({
+            output,
+            metadata: { parseError: String(parseError) },
+            tags: ["worker", "llm-classify", "error"],
+          });
+          return output;
+        }
       }
     }
-  }
 
-  // Unreachable, but TypeScript needs it
-  return {
-    documentType: "other.unclassified",
-    extractionConfidence: 0,
-    language: "unknown",
-    explanation: "Validation failed",
-  };
+    // Unreachable, but TypeScript needs it
+    return null;
+  } catch (err) {
+    throw err;
+  }
 }
 
 /**
@@ -146,5 +187,3 @@ llmClassifyWorker.on("completed", (job) => {
 llmClassifyWorker.on("failed", (job, error) => {
   console.error(`[LlmClassify] Job ${job?.id} failed:`, error.message);
 });
-
-export { processLlmClassifyJob };

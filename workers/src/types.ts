@@ -12,7 +12,7 @@
 
 export interface SubtaskInput {
   documentId: string;
-  jobNumber: string;
+  jobTime: string;
   ownerId: string;
   /** MIME type from document_files (detected via magic bytes at upload) */
   mimeType: string;
@@ -77,8 +77,10 @@ export interface LlmClassificationResult {
   dateHint?: string;
   /** Explanation for classification */
   explanation?: string;
-  /** A short summary of the document */
-  documentSummary?: string;
+  /** A short title of the document */
+  documentTitle?: string;
+  /** A summary of the document */
+  documentSummary?: Record<string, unknown>;
 }
 
 export interface ExtractionResult {

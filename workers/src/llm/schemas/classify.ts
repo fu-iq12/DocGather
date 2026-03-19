@@ -38,9 +38,10 @@ export const llmClassificationSchema = z
       .describe(
         "Confidence (0.0–1.0) that the provided data is reliable enough to generate a trustworthy structured data card",
       ),
+    documentTitle: z.string().describe("A very short title of the document"),
     documentSummary: z
-      .string()
-      .describe("A very short summary of the document"),
+      .record(z.string(), z.unknown())
+      .describe("A structured summary of the document"),
   })
   .describe("Classification response");
 

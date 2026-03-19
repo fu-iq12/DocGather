@@ -1,6 +1,9 @@
 import { Worker, Job } from "bullmq";
 import { connection } from "../queues.js";
-import { LLMClient } from "../llm/index.js";
+import { startObservation, propagateAttributes } from "@langfuse/tracing";
+import { LangfuseClient } from "@langfuse/client";
+import merge from "lodash.merge";
+import { LLMClient, parseResponse } from "../llm/index.js";
 import {
   getPendingKgDocuments,
   getKnowledgeGraph,
@@ -10,15 +13,49 @@ import {
   countPendingKgDocuments,
 } from "../supabase.js";
 import { kgMutationSchema } from "../llm/schemas/kg.js";
-import { KG_SYSTEM_PROMPT } from "../llm/prompts/kg.js";
+import { zodToTs } from "../llm/schemas/utils.js";
+
+// Initialize the Langfuse client
+const langfuse = new LangfuseClient();
 
 /**
  * Worker for asynchronously synchronizing incoming documents into the Knowledge Graph.
  * This ensures that LLM patches to the graph are applied serially to prevent race conditions.
  */
 export async function processKgBatch(job: Job) {
-  const { ownerId } = job.data;
+  const { ownerId, sessionId, jobTime } = job.data;
   if (!ownerId) throw new Error("Missing ownerId in job data");
+
+  let span: any;
+  return await propagateAttributes(
+    {
+      traceName: "kg-batch-process",
+      sessionId: sessionId || `${jobTime || Date.now()}-${ownerId}-kg-batch`,
+      userId: ownerId,
+      tags: ["kg-worker"],
+    },
+    async () => {
+      span = startObservation("kg-batch-process");
+      try {
+        const result = await _processKgBatch(job, span);
+        span.end();
+        return result;
+      } catch (err) {
+        span
+          .update({
+            level: "ERROR",
+            statusMessage: String(err),
+            metadata: { error: String(err) },
+          })
+          .end();
+        throw err;
+      }
+    },
+  );
+}
+
+async function _processKgBatch(job: Job, trace: any) {
+  const { ownerId } = job.data;
 
   // 1. Fetch pending docs atomically (FOR UPDATE SKIP LOCKED)
   const batchSize = parseInt(process.env.KG_INGEST_BATCH_SIZE || "10");
@@ -27,19 +64,18 @@ export async function processKgBatch(job: Job) {
     console.log(
       `[KgWorker] No pending docs for ${ownerId} in batch ${job.id}. Skipping.`,
     );
+    trace.update({ output: { skipped: true, reason: "no_pending_docs" } });
     return null;
   }
 
   const documentIds = docs.map((d) => d.document_id);
+  trace.update({ input: { documentIds } });
   console.log(
     `[KgWorker] Processing ${docs.length} docs for ${ownerId} (batch ${job.id})`,
   );
 
   // 2. Orchestrator Batch Estimation Maintenance
-  // The `job.data.documentIds` array is used by the orchestrator to estimate when the batch
-  // is full and promote the delayed job immediately. We prune the IDs we are processing now
-  // so the orchestrator's length check remains accurate for subsequent documents.
-  job.data.documentIds = job.data.documentIds.filter(
+  job.data.documentIds = (job.data.documentIds || []).filter(
     (id: string) => !documentIds.includes(id),
   );
   await job.updateData(job.data);
@@ -49,12 +85,12 @@ export async function processKgBatch(job: Job) {
     await ensureOwnerEntity(ownerId);
     const currentGraph = await getKnowledgeGraph(ownerId);
 
-    // Minimal subset of newly extracted docs to fit smoothly in context
     const newDocuments = docs.map((d) => ({
       document_id: d.document_id,
       document_type: d.document_type,
       document_date: d.document_date,
-      extracted_data: d.extracted_data?.normalized,
+      extracted_data:
+        d.extracted_data?.normalized || d.extracted_data?.classification,
     }));
 
     const context = {
@@ -62,35 +98,34 @@ export async function processKgBatch(job: Job) {
       new_documents: newDocuments,
     };
 
-    const promptText = `CONTEXT:\n${JSON.stringify(context, null, 2)}`;
+    const kgPrompt = await langfuse.prompt.get("kg");
+    const systemPrompt = kgPrompt.compile({
+      KgMutationResponse: zodToTs(kgMutationSchema, "KgMutationResponse"),
+    });
+
+    const userPrompt = JSON.stringify(context, null, 2);
 
     // 4. Request LLM Mutations
     const client = new LLMClient();
     const chatOptions = {
       responseFormat: { type: "json_object" as const },
       cachePrefix: "kg-worker",
-      temperature: 0,
+      temperature: 0.1,
+      parentTrace: trace,
+      prompt: kgPrompt,
     };
 
-    let response = await client.chat(KG_SYSTEM_PROMPT, promptText, chatOptions);
+    let response = await client.chat(systemPrompt, userPrompt, chatOptions);
     let parsed: any;
 
     const MAX_PARSE_ATTEMPTS = 3;
     for (let attempt = 1; attempt <= MAX_PARSE_ATTEMPTS; attempt++) {
       try {
-        const jsonMatch = response.content.match(
-          /```(?:json|typescript)?\s*([\s\S]*?)```/,
-        );
-        const jsonStr = jsonMatch
-          ? jsonMatch[1].trim()
-          : response.content.trim();
-        const rawJson = JSON.parse(jsonStr);
-
-        // Ensure schema compliance. If invalid, throws ZodError.
-        parsed = kgMutationSchema.parse(rawJson);
-        console.log(
-          "[DEBUG] Parsed KG mutations: ",
-          JSON.stringify(parsed, null, 2),
+        parsed = parseResponse(
+          response.content,
+          userPrompt,
+          kgMutationSchema,
+          trace,
         );
         break; // Success
       } catch (err) {
@@ -99,7 +134,7 @@ export async function processKgBatch(job: Job) {
             `[KgWorker] Schema validation failed (attempt ${attempt}/${MAX_PARSE_ATTEMPTS}). Retrying LLM without cache.`,
             err,
           );
-          response = await client.chat(KG_SYSTEM_PROMPT, promptText, {
+          response = await client.chat(systemPrompt, userPrompt, {
             ...chatOptions,
             skipCache: true,
           });
@@ -111,8 +146,29 @@ export async function processKgBatch(job: Job) {
       }
     }
 
+    // 4. Deep merge data from current graph and parsed mutations
+    for (const entity of parsed.mutations.entities) {
+      const existingEntity = currentGraph.entities.find(
+        (e) => e.id === entity.id,
+      );
+      if (existingEntity) {
+        existingEntity.data = merge({}, existingEntity.data, entity.data);
+      }
+    }
+    for (const relationship of parsed.mutations.relationships) {
+      const existingRelationship = currentGraph.relationships.find(
+        (e) => e.id === relationship.id,
+      );
+      if (existingRelationship) {
+        existingRelationship.data = merge(
+          {},
+          existingRelationship.data,
+          relationship.data,
+        );
+      }
+    }
+
     // 5. Apply DB Mutations ACID Transaction
-    // Use parsed.mutations and parsed.attributions directly
     const stats = await applyKgMutations(
       ownerId,
       parsed.mutations,
@@ -123,6 +179,8 @@ export async function processKgBatch(job: Job) {
     console.log(
       `[KgWorker] Successfully mapped batch ${job.id} for ${ownerId}. Stats: ${JSON.stringify(stats)}`,
     );
+
+    trace.update({ output: stats });
 
     // 6. Check for remaining work to instruct the event handler to re-queue
     const remainingCount = await countPendingKgDocuments(ownerId);
@@ -136,8 +194,6 @@ export async function processKgBatch(job: Job) {
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`[KgWorker] Batch error for ${ownerId}: ${errorMsg}`);
-
-    // Fallback error-handling: revert DB entities back to "pending"
     await logKgBatchError(ownerId, documentIds, errorMsg);
     throw error;
   }
@@ -164,7 +220,7 @@ kgWorker.on("completed", async (job, result) => {
       const { kgIngestionQueue } = await import("../queues.js");
       await kgIngestionQueue.add(
         "kg-ingest",
-        { ownerId, documentIds },
+        { ownerId, documentIds, sessionId: job.data.sessionId },
         {
           jobId: `${ownerId}-kg-batch`,
           delay,

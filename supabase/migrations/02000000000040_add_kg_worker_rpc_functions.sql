@@ -59,55 +59,6 @@ revoke all on function worker_kg_get_pending_documents(uuid, int) from public, a
 grant execute on function worker_kg_get_pending_documents(uuid, int) to service_role;
 
 -- -----------------------------------------------------------------------------
--- worker_kg_mark_batch_synced: Mark a successful batch
--- -----------------------------------------------------------------------------
-create or replace function worker_kg_mark_batch_synced(
-  p_document_ids uuid[]
-)
-returns boolean
-language plpgsql
-security definer
-as $$
-begin
-  update public.documents
-  set 
-    kg_sync_status = 'synced',
-    updated_at = now()
-  where id = any(p_document_ids);
-  
-  return true;
-end;
-$$;
-
-revoke all on function worker_kg_mark_batch_synced(uuid[]) from public, anon, authenticated;
-grant execute on function worker_kg_mark_batch_synced(uuid[]) to service_role;
-
--- -----------------------------------------------------------------------------
--- worker_kg_mark_batch_failed: Return documents to pending
--- -----------------------------------------------------------------------------
-create or replace function worker_kg_mark_batch_failed(
-  p_document_ids uuid[]
-)
-returns boolean
-language plpgsql
-security definer
-as $$
-begin
-  -- Revert to pending so they can be retried
-  update public.documents
-  set 
-    kg_sync_status = 'pending',
-    updated_at = now()
-  where id = any(p_document_ids);
-  
-  return true;
-end;
-$$;
-
-revoke all on function worker_kg_mark_batch_failed(uuid[]) from public, anon, authenticated;
-grant execute on function worker_kg_mark_batch_failed(uuid[]) to service_role;
-
--- -----------------------------------------------------------------------------
 -- worker_kg_get_graph: Fetch decoded knowledge graph for an owner
 -- -----------------------------------------------------------------------------
 create or replace function worker_kg_get_graph(
@@ -122,17 +73,28 @@ declare
   v_relationships jsonb;
   v_overrides jsonb;
 begin
-  select coalesce(jsonb_agg(row_to_json(e)), '[]'::jsonb) into v_entities
-  from public.kg_entities_decoded e
-  where owner_id = p_owner_id and deleted_at is null;
+  select coalesce(jsonb_agg(row_to_json(sub)), '[]'::jsonb) into v_entities
+  from (
+    select id, data, is_owner
+    from public.kg_entities_decoded
+    where owner_id = p_owner_id
+      and deleted_at is null
+  ) sub;
 
-  select coalesce(jsonb_agg(row_to_json(r)), '[]'::jsonb) into v_relationships
-  from public.kg_relationships_decoded r
-  where owner_id = p_owner_id and deleted_at is null;
+  select coalesce(jsonb_agg(row_to_json(sub)), '[]'::jsonb) into v_relationships
+  from (
+    select id, data, relationship_type, source_entity_id, target_entity_id, valid_from, valid_to
+    from public.kg_relationships_decoded
+    where owner_id = p_owner_id
+      and deleted_at is null
+  ) sub;
 
-  select coalesce(jsonb_agg(row_to_json(c)), '[]'::jsonb) into v_overrides
-  from public.kg_confirmed_overrides_decoded c
-  where owner_id = p_owner_id;
+  select coalesce(jsonb_agg(row_to_json(sub)), '[]'::jsonb) into v_overrides
+  from (
+    select id, target_type, target_id, json_path, confirmed_value
+    from public.kg_confirmed_overrides_decoded
+    where owner_id = p_owner_id
+  ) sub;
 
   return jsonb_build_object(
     'entities', v_entities,
@@ -166,12 +128,14 @@ begin
 
   if v_id is null then
     insert into public.kg_entities (
+      id,
       owner_id, 
       is_owner, 
       encrypted_data, 
       master_key_version
     )
     values (
+      p_owner_id,
       p_owner_id,
       true,
       public.encrypt_jsonb('{}'::jsonb),

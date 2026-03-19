@@ -90,13 +90,6 @@ export class LLMCache {
       contentHash,
     );
 
-    await mkdir(dirname(cachePath), { recursive: true });
-    await writeFile(
-      cachePath.replace(".json", ".request.json"),
-      JSON.stringify(request, null, 2),
-      "utf-8",
-    );
-
     try {
       await access(cachePath);
       const data = await readFile(cachePath, "utf-8");

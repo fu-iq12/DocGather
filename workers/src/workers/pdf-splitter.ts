@@ -17,6 +17,7 @@ import {
   createChildDocument,
   updateDocumentPrivate,
 } from "../supabase.js";
+import { startObservation, propagateAttributes } from "@langfuse/tracing";
 import type { SubtaskInput, PdfSplitResult } from "../types.js";
 import { generateDeterministicChildDocumentId } from "../utils/uuid.js";
 
@@ -66,21 +67,49 @@ async function extractPages(
 /**
  * PDF splitter job processor
  */
-async function processPdfSplitterJob(
+export async function processPdfSplitterJob(
   job: Job<SubtaskInput>,
 ): Promise<PdfSplitResult | null> {
-  const {
-    documentId,
-    originalPath,
-    ownerId,
-    preAnalysis,
-    mimeType,
-    convertedPdfPath,
-  } = job.data;
+  const { documentId, ownerId, jobTime } = job.data;
+  let span: any;
+  return await propagateAttributes(
+    {
+      traceName: "pdf-splitter",
+      sessionId: `${jobTime}-${documentId}-orchestrator`,
+      userId: ownerId,
+      tags: ["worker", "pdf-splitter"],
+    },
+    async () => {
+      span = startObservation("pdf-splitter");
+      try {
+        const result = await _processPdfSplitterJob(job, span);
+        span.end();
+        return result;
+      } catch (err) {
+        span
+          .update({
+            level: "ERROR",
+            statusMessage: String(err),
+            metadata: { error: String(err) },
+          })
+          .end();
+        throw err;
+      }
+    },
+  );
+}
+
+async function _processPdfSplitterJob(
+  job: Job<SubtaskInput>,
+  trace: any,
+): Promise<PdfSplitResult | null> {
+  const { documentId, ownerId, preAnalysis, mimeType, convertedPdfPath } =
+    job.data;
 
   // Validate input
   if (mimeType !== "application/pdf" && !convertedPdfPath) {
     console.log(`[PdfSplitter] Skipping non-PDF document ${documentId}`);
+    trace.update({ output: { skipped: true, reason: "not_pdf" } });
     return null;
   }
 
@@ -92,6 +121,7 @@ async function processPdfSplitterJob(
     console.log(
       `[PdfSplitter] Document ${documentId} is not multi-doc or has no split info`,
     );
+    trace.update({ output: { skipped: true, reason: "not_multi_doc" } });
     return null;
   }
 
@@ -196,10 +226,15 @@ async function processPdfSplitterJob(
       childDocumentIds.push(childDocId);
     }
 
-    return {
+    const result = {
       splitInto: createdCount,
       childDocumentIds,
     };
+
+    trace.update({ output: result });
+    return result;
+  } catch (err) {
+    throw err;
   } finally {
     // Cleanup
     await rm(tempDir, { recursive: true, force: true }).catch(() => {});
@@ -231,4 +266,4 @@ pdfSplitterWorker.on("failed", (job, error) => {
   console.error(`[PdfSplitter] Job ${job?.id} failed:`, error.message);
 });
 
-export { processPdfSplitterJob, extractPages };
+export { extractPages };

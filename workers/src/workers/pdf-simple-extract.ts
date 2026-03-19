@@ -13,6 +13,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { connection } from "../queues.js";
 import { downloadFile } from "../supabase.js";
+import { startObservation, propagateAttributes } from "@langfuse/tracing";
 import type { SubtaskInput, PdfExtractResult } from "../types.js";
 
 const execFileAsync = promisify(execFile);
@@ -53,17 +54,50 @@ async function runPythonExtraction(pdfPath: string): Promise<PdfExtractResult> {
 /**
  * PDF text extraction job processor
  */
-async function processPdfSimpleExtractJob(
+export async function processPdfSimpleExtractJob(
   job: Job<SubtaskInput>,
 ): Promise<PdfExtractResult | null> {
-  const { documentId, originalPath, mimeType, preAnalysis, convertedPdfPath } =
-    job.data;
+  const { documentId, ownerId, jobTime } = job.data;
+  let span: any;
+  return await propagateAttributes(
+    {
+      traceName: "pdf-simple-extract",
+      sessionId: `${jobTime}-${documentId}-orchestrator`,
+      userId: ownerId,
+      tags: ["worker", "pdf-simple-extract"],
+    },
+    async () => {
+      span = startObservation("pdf-simple-extract");
+      try {
+        const result = await _processPdfSimpleExtractJob(job, span);
+        span.end();
+        return result;
+      } catch (err) {
+        span
+          .update({
+            level: "ERROR",
+            statusMessage: String(err),
+            metadata: { error: String(err) },
+          })
+          .end();
+        throw err;
+      }
+    },
+  );
+}
+
+async function _processPdfSimpleExtractJob(
+  job: Job<SubtaskInput>,
+  trace: any,
+): Promise<PdfExtractResult | null> {
+  const { documentId, mimeType, convertedPdfPath } = job.data;
 
   // Basic validation: must be PDF or have a converted PDF
   if (mimeType !== "application/pdf" && !convertedPdfPath) {
     console.log(
       `[PdfSimpleExtract] Skipping non-PDF document ${documentId} (${mimeType})`,
     );
+    trace.update({ output: { skipped: true, reason: "not_pdf" } });
     return null; // Return null to indicate no result produced
   }
 
@@ -97,10 +131,11 @@ async function processPdfSimpleExtractJob(
       `[PdfSimpleExtract] Extracted ${result.text.length} chars from ${result.pageCount} pages for ${documentId}`,
     );
 
+    trace.update({ output: result });
     return result;
-  } catch (error) {
-    console.error(`[PdfSimpleExtract] Failed for ${documentId}:`, error);
-    throw error;
+  } catch (err) {
+    console.error(`[PdfSimpleExtract] Failed for ${documentId}:`, err);
+    throw err;
   } finally {
     await rm(tempDir, { recursive: true, force: true }).catch(() => {});
   }
@@ -131,4 +166,4 @@ pdfSimpleExtractWorker.on("failed", (job, error) => {
   console.error(`[PdfSimpleExtract] Job ${job?.id} failed:`, error.message);
 });
 
-export { processPdfSimpleExtractJob, runPythonExtraction };
+export { runPythonExtraction };

@@ -35,6 +35,7 @@ describe("types", () => {
     it("should require mimeType, originalFileId, and originalPath", () => {
       const input: SubtaskInput = {
         documentId: "doc-123",
+        jobTime: "1700000000",
         ownerId: "user-456",
         mimeType: "image/jpeg",
         originalFileId: "file-789",
@@ -51,6 +52,7 @@ describe("types", () => {
     it("should allow full input with all optional fields", () => {
       const input: SubtaskInput = {
         documentId: "doc-123",
+        jobTime: "1700000000",
         ownerId: "user-456",
         mimeType: "application/pdf",
         originalFileId: "file-789",
@@ -189,4 +191,3 @@ describe("types", () => {
     });
   });
 });
-

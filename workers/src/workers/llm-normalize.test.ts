@@ -12,8 +12,10 @@ import type { SubtaskInput } from "../types.js";
 const mockChat = vi.fn();
 const mockVision = vi.fn();
 
-vi.mock("../llm/index.js", () => {
+vi.mock("../llm/index.js", async (importOriginal) => {
+  const actual: any = await importOriginal();
   return {
+    ...actual,
     LLMClient: vi.fn().mockImplementation(() => ({
       chat: mockChat,
       vision: mockVision,
@@ -27,6 +29,16 @@ vi.mock("../llm/billing.js", () => ({
 
 vi.mock("../supabase.js", () => ({
   downloadFile: vi.fn(),
+}));
+
+vi.mock("@langfuse/client", () => ({
+  LangfuseClient: vi.fn().mockImplementation(() => ({
+    prompt: {
+      get: vi.fn().mockResolvedValue({
+        compile: vi.fn().mockReturnValue("compiled_prompt"),
+      }),
+    },
+  })),
 }));
 
 // Helper to create mock job
@@ -116,4 +128,3 @@ describe("processLlmNormalizeJob", () => {
     expect(mockChat).toHaveBeenCalledTimes(3);
   });
 });
-

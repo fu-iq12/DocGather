@@ -10,8 +10,10 @@ import type { SubtaskInput } from "../types.js";
 // Mock dependencies
 const mockChat = vi.fn();
 
-vi.mock("../llm/index.js", () => {
+vi.mock("../llm/index.js", async (importOriginal) => {
+  const actual: any = await importOriginal();
   return {
+    ...actual,
     LLMClient: vi.fn().mockImplementation(() => ({
       chat: mockChat,
     })),
@@ -20,6 +22,16 @@ vi.mock("../llm/index.js", () => {
 
 vi.mock("../llm/billing.js", () => ({
   trackLlmUsage: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@langfuse/client", () => ({
+  LangfuseClient: vi.fn().mockImplementation(() => ({
+    prompt: {
+      get: vi.fn().mockResolvedValue({
+        compile: vi.fn().mockReturnValue("compiled_prompt"),
+      }),
+    },
+  })),
 }));
 
 // Helper to create mock job
@@ -48,12 +60,12 @@ describe("processLlmClassifyJob", () => {
       content: JSON.stringify({
         documentType: "income.payslip",
         extractionConfidence: 0.95,
-        extractionConfidenceReason: "Good quality image",
-        documentSummary: "A payslip",
         language: "fr",
         explanation: "Found 'BULLETIN DE PAIE' keyword",
-        sanitizedFilename: "Payslip_Jan_2024.pdf",
-        sanitizedSummary: "A payslip for the month of January 2024",
+        documentTitle: "A payslip",
+        documentSummary: {
+          summary: "A payslip for the month of January 2024",
+        },
       }),
       model: "test-model",
     };
@@ -115,4 +127,3 @@ describe("processLlmClassifyJob", () => {
     await expect(processLlmClassifyJob(job)).rejects.toThrow("API Error");
   });
 });
-

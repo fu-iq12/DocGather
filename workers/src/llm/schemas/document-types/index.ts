@@ -46,15 +46,6 @@ export function getSystemPromptTaxonomy(): string {
 }
 
 /**
- * Generate plain english schema for System Prompt using Zod-to-TS
- */
-export function getSystemPromptSchema(
-  documentType: DocumentTypeDefinition,
-): string {
-  return zodToTs(documentType.schema, "ExtractionResult");
-}
-
-/**
  * Get schema for a document type
  */
 export function getDocumentSchema(typeId: string): z.ZodTypeAny {

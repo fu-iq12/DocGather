@@ -211,7 +211,7 @@ describe("pdf-splitter worker", () => {
       const job = {
         data: {
           documentId: "doc-123",
-          jobNumber: "job-123",
+          jobTime: "job-123",
           ownerId: "user-456",
           mimeType: "application/pdf",
           originalFileId: "file-789",

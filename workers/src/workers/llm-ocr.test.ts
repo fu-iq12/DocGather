@@ -8,13 +8,17 @@ import type { SubtaskInput } from "../types.js";
 
 // Mock LLM client
 const mockOcr = vi.fn();
-vi.mock("../llm/index.js", () => ({
-  LLMClient: vi.fn().mockImplementation(() => ({
-    providerName: "mock",
-    vision: mockOcr,
-    ocr: mockOcr,
-  })),
-}));
+vi.mock("../llm/index.js", async (importOriginal) => {
+  const actual: any = await importOriginal();
+  return {
+    ...actual,
+    LLMClient: vi.fn().mockImplementation(() => ({
+      providerName: "mock",
+      vision: mockOcr,
+      ocr: mockOcr,
+    })),
+  };
+});
 
 // Add static method mock
 import { LLMClient } from "../llm/index.js";
@@ -38,6 +42,16 @@ vi.mock("../llm/billing.js", () => ({
   trackLlmUsage: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("@langfuse/client", () => ({
+  LangfuseClient: vi.fn().mockImplementation(() => ({
+    prompt: {
+      get: vi.fn().mockResolvedValue({
+        compile: vi.fn().mockReturnValue("compiled_prompt"),
+      }),
+    },
+  })),
+}));
+
 // Mock schema parsing if needed, but integration with Zod is better if possible.
 // We mocked the module relative path, so we can mock the export.
 // Actually, let's keep Zod real to test validation logic if possible.
@@ -45,7 +59,8 @@ vi.mock("../llm/billing.js", () => ({
 // The worker imports from `../schemas/llm-responses.js`.
 
 // Import worker
-const { processLlmOcrJob, parseResponse } = await import("./llm-ocr.js");
+const { processLlmOcrJob } = await import("./llm-ocr.js");
+const { parseResponse } = await import("../llm/index.js");
 
 describe("llm-ocr worker", () => {
   beforeEach(() => {
@@ -202,4 +217,3 @@ describe("llm-ocr worker", () => {
     });
   });
 });
-

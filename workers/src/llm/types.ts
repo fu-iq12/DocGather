@@ -3,6 +3,8 @@
  * Ensures consistent inputs and outputs across localized dev instances (Ollama) and production endpoints (OVHcloud, Mistral).
  */
 
+import { TextPromptClient } from "@langfuse/client";
+
 export interface VisionContent {
   type: "text" | "image_url";
   text?: string;
@@ -35,6 +37,12 @@ export interface ChatRequestOptions {
       schema: Record<string, unknown> | unknown;
     };
   };
+  /** Parent trace or span for Langfuse to attach generation to */
+  parentTrace?: any;
+  /** Prompt used for the generation */
+  langfusePrompt?: TextPromptClient;
+  /** Session ID if parent is omitted but we still want to link the generation */
+  sessionId?: string;
 }
 
 export interface ChatResponse {

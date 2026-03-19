@@ -17,8 +17,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 // Mock LLMClient
-vi.mock("../llm/index.js", () => {
+vi.mock("../llm/index.js", async (importOriginal) => {
+  const actual: any = await importOriginal();
   return {
+    ...actual,
     LLMClient: vi.fn().mockImplementation(() => ({
       chat: mocks.chat,
     })),
@@ -43,6 +45,16 @@ vi.mock("bullmq", () => ({
     on() {}
     close() {}
   },
+}));
+
+vi.mock("@langfuse/client", () => ({
+  LangfuseClient: vi.fn().mockImplementation(() => ({
+    prompt: {
+      get: vi.fn().mockResolvedValue({
+        compile: vi.fn().mockReturnValue("compiled_prompt"),
+      }),
+    },
+  })),
 }));
 
 vi.mock("../queues.js", () => ({

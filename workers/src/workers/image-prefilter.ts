@@ -14,6 +14,7 @@ import { tmpdir } from "os";
 import { join, extname } from "path";
 import { connection } from "../queues.js";
 import { downloadFile } from "../supabase.js";
+import { startObservation, propagateAttributes } from "@langfuse/tracing";
 import type { SubtaskInput, ImagePrefilterResult } from "../types.js";
 
 const execFileAsync = promisify(execFile);
@@ -60,8 +61,41 @@ async function runTesseract(
 /**
  * Image Pre-Filter job processor
  */
-async function processImagePrefilterJob(
+export async function processImagePrefilterJob(
   job: Job<SubtaskInput>,
+): Promise<ImagePrefilterResult> {
+  const { documentId, ownerId, jobTime } = job.data;
+  let span: any;
+  return await propagateAttributes(
+    {
+      traceName: "image-prefilter",
+      sessionId: `${jobTime}-${documentId}-orchestrator`,
+      userId: ownerId,
+      tags: ["worker", "image-prefilter"],
+    },
+    async () => {
+      span = startObservation("image-prefilter");
+      try {
+        const result = await _processImagePrefilterJob(job, span);
+        span.end();
+        return result;
+      } catch (err) {
+        span
+          .update({
+            level: "ERROR",
+            statusMessage: String(err),
+            metadata: { error: String(err) },
+          })
+          .end();
+        throw err;
+      }
+    },
+  );
+}
+
+async function _processImagePrefilterJob(
+  job: Job<SubtaskInput>,
+  trace: any,
 ): Promise<ImagePrefilterResult> {
   const { documentId, scaledImagePaths } = job.data;
 
@@ -102,15 +136,18 @@ async function processImagePrefilterJob(
       `[ImagePrefilter] Doc ${documentId}: ${charCount} chars detected. hasText=${hasText}`,
     );
 
-    return {
+    const result = {
       hasText,
       rawText: text,
       charCount,
     };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    trace.update({ output: result });
+    return result;
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
     console.error(`[ImagePrefilter] Failed for ${documentId}:`, errorMessage);
-    throw error;
+    throw err;
   } finally {
     await rm(tempDir, { recursive: true, force: true }).catch(() => {});
   }
@@ -141,4 +178,4 @@ imagePrefilterWorker.on("failed", (job, error) => {
   console.error(`[ImagePrefilter] Job ${job?.id} failed:`, error.message);
 });
 
-export { processImagePrefilterJob, runTesseract };
+export { runTesseract };

@@ -43,6 +43,9 @@ services:
       - FILE_CACHE_KEEP_ON_DISK=${FILE_CACHE_KEEP_ON_DISK:-true}
       - KG_INGEST_BATCH_SIZE=${KG_INGEST_BATCH_SIZE:-10}
       - KG_INGEST_DELAY_MS=${KG_INGEST_DELAY_MS:-15000}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY}
+      - LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL}
     depends_on:
       redis:
         condition: service_healthy

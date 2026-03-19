@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { SHARED_ZOD, getCountryAtom } from "./document-types/shared.js";
+import { zodDeepPartial } from "zod-deep-partial";
 
 const identitySchema = z.object({
   names: SHARED_ZOD.names,
-  gender: SHARED_ZOD.gender.optional(),
-  birth: SHARED_ZOD.birth.optional(),
+  gender: SHARED_ZOD.gender,
+  birth: SHARED_ZOD.birth,
   death: z
     .string()
     .describe("Date of death (YYYY-MM-DD). Example: 2026-02-12")
@@ -57,16 +58,17 @@ export const kgMutationSchema = z.object({
               .string()
               .describe(
                 "The exact UUID of the existing entity or a temporary string ID like 'e_new_1' to reference in relationships within this mutation",
-              )
-              .optional(),
-            data: z.object({
-              individual: individualSchema
-                .describe("Data for individuals")
-                .optional(),
-              organization: organizationSchema
-                .describe("Data for organizations")
-                .optional(),
-            }),
+              ),
+            data: zodDeepPartial(
+              z.object({
+                individual: individualSchema
+                  .describe("Data for individuals")
+                  .optional(),
+                organization: organizationSchema
+                  .describe("Data for organizations")
+                  .optional(),
+              }),
+            ),
             arbitrations: arbitrationsSchema.optional(),
           }),
         )
@@ -103,6 +105,7 @@ export const kgMutationSchema = z.object({
                 z.string(),
                 z.union([z.string(), z.number(), z.boolean()]),
               )
+              .optional()
               .describe("Relationship data fields. Only simple values allowed"),
           }),
         )

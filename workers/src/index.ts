@@ -28,6 +28,8 @@ import { clearStaleCacheEntries } from "./file-cache.js";
 import { Queue } from "bullmq";
 import type { JobSource } from "./types.js";
 import { getDefaultConfig } from "./llm/types.js";
+import { getJobTime } from "./utils/jobtime.js";
+import { sdk } from "./utils/instrumentation.js";
 
 const app = express();
 app.use(express.json());
@@ -169,7 +171,11 @@ app.post("/kg-ingest", async (req: Request, res: Response) => {
 
     job = await kgIngestionQueue.add(
       "kg-ingest",
-      { ownerId, documentIds: [] },
+      {
+        ownerId,
+        documentIds: [],
+        sessionId: `${getJobTime()}-${ownerId}-kg-batch`,
+      },
       {
         jobId: debounceJobId, // Debounce key
       },
@@ -279,6 +285,9 @@ async function shutdown(signal: string): Promise<void> {
 
   // Close queues and Redis connection
   await closeQueues();
+
+  // Flush all remaining traces
+  await sdk.shutdown();
 
   console.log("[Server] Shutdown complete");
   process.exit(0);
